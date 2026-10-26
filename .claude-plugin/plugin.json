@@ -1,0 +1,9 @@
+{
+  "name": "application-tracker-ai",
+  "description": "A private, Gmail-synced job-application tracker with follow-up drafts, job leads, alerts and on-request CV upgrades, plus a human-writing skill.",
+  "version": "1.0.0",
+  "author": {
+    "name": "Liran Martfel"
+  },
+  "license": "MIT"
+}
