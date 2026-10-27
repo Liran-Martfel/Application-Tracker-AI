@@ -11,8 +11,8 @@
   <section class="jt-card jt-cv" id="cv" aria-labelledby="cv-h">
     <div class="jt-cv-head">
       <div>
-        <h2 class="jt-h" id="cv-h">שדרוג קורות חיים</h2>
-        <p class="jt-note">קורה רק כשאתה מבקש. בוחרים משרה, כותבים מה לשנות ולוחצים על הכפתור. הבקשה מועתקת, ואז מדביקים אותה בצ'אט עם Claude ומצרפים את קובץ קורות החיים. העובדות נשארות שלך, רק הניסוח וההתאמה משתנים</p>
+        <h2 class="jt-h" id="cv-h">קורות חיים: שדרוג והגשה</h2>
+        <p class="jt-note">קורה רק כשאתה מבקש. בוחרים משרה ולוחצים: שדרוג מתאים את קורות החיים למשרה, הגשה מכינה מייל או טופס עם קורות החיים. הבקשה מועתקת, מדביקים אותה בצ'אט עם Claude, ושום דבר לא נשלח בלי אישור שלך</p>
       </div>
     </div>
     <div class="jt-cv-form">
@@ -26,11 +26,12 @@
           <option value="English">English</option>
         </select>
       </label>
-      <label class="jt-field jt-field-wide"><span>מה לשנות</span>
+      <label class="jt-field jt-field-wide"><span>מה לשנות / הערות להגשה</span>
         <textarea id="cv-ask" class="jt-input" rows="3" placeholder="למשל: להבליט פרויקט מסוים, לקצר לעמוד אחד, תקציר חדש שמתאים לתפקיד…"></textarea>
       </label>
       <div class="jt-cv-actions jt-field-wide">
         <button type="button" id="cv-go" class="jt-primary">שדרוג קורות חיים</button>
+        <button type="button" id="cv-apply" class="jt-secondary">הגשת קורות חיים</button>
         <span id="cv-status" class="jt-note" role="status"></span>
       </div>
       <textarea id="cv-out" class="jt-input jt-cv-out jt-field-wide" rows="7" readonly hidden aria-label="הבקשה שהועתקה"></textarea>
@@ -129,6 +130,7 @@
           <th data-field="role_desc">מה עושים בתפקיד</th>
           <th data-field="location" class="jt-hide-sm">מיקום</th>
           <th data-field="status" class="jt-hide-sm">מצב המשרה</th>
+          <th>הגשה</th>
         </tr></thead>
         <tbody></tbody>
       </table>
@@ -512,6 +514,14 @@
   :root[data-theme="dark"] .jt-primary { color: #0e1626; background: linear-gradient(90deg, var(--accent), var(--gold)); }
   @media (prefers-reduced-motion: reduce) { .jt-primary:active { transform: none; } }
   @media (max-width: 640px) { .jt-cv-form { grid-template-columns: 1fr; } }
+  .jt-secondary, .jt-apply { font: inherit; font-weight: 600; border-radius: var(--radius-md); cursor: pointer; touch-action: manipulation;
+    background: var(--accent-soft); color: var(--accent); border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+    transition: transform 100ms ease-out, background-color 150ms ease-out; }
+  .jt-secondary { min-height: 48px; padding: 0 20px; font-size: 1rem; }
+  .jt-apply { min-height: 34px; padding: 2px 14px; font-size: 0.9rem; white-space: nowrap; }
+  .jt-secondary:active, .jt-apply:active { transform: scale(0.97); }
+  .jt-secondary:focus-visible, .jt-apply:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  @media (prefers-reduced-motion: reduce) { .jt-secondary:active, .jt-apply:active { transform: none; } }
 </style>
 
 <script>
@@ -1033,7 +1043,7 @@
       const d = dash.data('job_leads');
       leadsBody.replaceChildren();
       if (d.status !== 'ok') {
-        const tr = document.createElement('tr'); const td = document.createElement('td'); td.colSpan = 6;
+        const tr = document.createElement('tr'); const td = document.createElement('td'); td.colSpan = 7;
         if (d.status === 'error') { const f = document.createElement('div'); f.className = 'jt-fail'; f.textContent = 'הטעינה נכשלה'; td.appendChild(f); } else td.className = 'dash-skeleton';
         tr.appendChild(td); leadsBody.appendChild(tr); return;
       }
@@ -1048,7 +1058,7 @@
       });
       const rows = all.filter((r) => leadFilter === 'הכל' || r.fit === leadFilter)
         .sort((a, b) => (a.status === 'פתוחה' ? 0 : 1) - (b.status === 'פתוחה' ? 0 : 1) || FIT_ORDER.indexOf(a.fit) - FIT_ORDER.indexOf(b.fit) || String(b.seen).localeCompare(String(a.seen)));
-      if (!rows.length) { const tr = document.createElement('tr'); const td = document.createElement('td'); td.colSpan = 6; td.className = 'jt-empty'; td.textContent = 'אין כרגע משרות חדשות שמתאימות'; tr.appendChild(td); leadsBody.appendChild(tr); return; }
+      if (!rows.length) { const tr = document.createElement('tr'); const td = document.createElement('td'); td.colSpan = 7; td.className = 'jt-empty'; td.textContent = 'אין כרגע משרות חדשות שמתאימות'; tr.appendChild(td); leadsBody.appendChild(tr); return; }
       rows.forEach((r) => {
         const tr = document.createElement('tr'); tr.dataset.key = r.id;
         linkCell(tr, r.company, r.mail_link).className = 'jt-company';
@@ -1063,6 +1073,9 @@
         tr.appendChild(td);
         cell(tr, r.location, 'jt-hide-sm');
         cell(tr, r.status, 'jt-hide-sm ' + (r.status === 'פתוחה' ? 'jt-k-progress' : 'jt-muted'));
+        const ta = document.createElement('td'); const ab = document.createElement('button'); ab.type = 'button'; ab.className = 'jt-apply'; ab.textContent = 'הגש';
+        ab.setAttribute('aria-label', `הגשת קורות חיים ל-${r.company}, ${r.role}`);
+        ab.addEventListener('click', () => window.JT.apply && window.JT.apply('l:' + r.id)); ta.appendChild(ab); tr.appendChild(ta);
         leadsBody.appendChild(tr);
       });
     };
@@ -1195,6 +1208,33 @@
       lines.push(`שפה: ${lang.value}`);
       lines.push('קורות החיים שלי מצורפים. אל תמציא שום עובדה, כתוב בשפה אנושית וטבעית, ותראה לי מה שינית לפני הקובץ הסופי.');
       return lines.join('\n');
+    };
+    const head = (t) => {
+      if (!t) return ['משרה: לא נבחרה — תשאל אותי לאיזו משרה'];
+      const l = [`משרה: ${t.company} – ${t.role}${t.job_id ? ` (מס' ${t.job_id})` : ''}`];
+      if (t.link) l.push(`קישור: ${t.link}`);
+      if (t.desc) l.push(`על התפקיד: ${t.desc}`);
+      if (t.origin) l.push(`סוג חברה: ${t.origin}`);
+      return l;
+    };
+    const buildApply = () => {
+      const t = targets.find((x) => x.key === sel.value);
+      const lines = [`הגשת קורות חיים (סקיל ${SKILL}) — בקשה מפורשת שלי.`, ...head(t)];
+      if (ask.value.trim()) lines.push(`הערות שלי: ${ask.value.trim()}`);
+      lines.push(`שפה: ${lang.value}`);
+      lines.push('תבדוק שלא הגשתי כבר, תמצא איך מגישים (מייל או טופס), תכין הכול עם קורות החיים המתאימים ותראה לי לפני. לא לשלוח ולא להגיש בלי אישור שלי.');
+      return lines.join('\n');
+    };
+    const deliver = async (text, okMsg) => {
+      out.hidden = false; out.value = text;
+      try { await navigator.clipboard.writeText(text); st.textContent = okMsg; }
+      catch (e) { out.focus(); out.select(); st.textContent = 'סמן והעתק את הבקשה מהתיבה, ואז הדבק בצ\'אט עם Claude'; }
+    };
+    document.getElementById('cv-apply').addEventListener('click', () => deliver(buildApply(), 'בקשת ההגשה הועתקה. הדבק אותה בצ\'אט עם Claude'));
+    window.JT.apply = (key) => {
+      if ([...sel.options].some((o) => o.value === key)) sel.value = key;
+      const top = document.getElementById('cv').getBoundingClientRect().top + window.scrollY - 16; window.scrollTo({ top, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+      deliver(buildApply(), 'בקשת ההגשה הועתקה. הדבק אותה בצ\'אט עם Claude');
     };
     go.addEventListener('click', async () => {
       const text = build();

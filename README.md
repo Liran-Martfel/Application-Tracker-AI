@@ -2,7 +2,7 @@
 
 <div dir="rtl">
 
-סקיל ל-Claude שבונה לך דשבורד פרטי לכל קורות החיים ששלחת. הוא מתעדכן לבד מה-Gmail ומאתרי הדרושים, מכין טיוטות פולואפ, ממליץ על משרות ושולח התראה כשמזמינים אותך לראיון. יש בו גם שדרוג קורות חיים למשרה מסוימת, רק כשמבקשים, בשפה טבעית ובלי להמציא שום עובדה.
+סקיל ל-Claude שבונה לך דשבורד פרטי לכל קורות החיים ששלחת. הוא מתעדכן לבד מה-Gmail ומאתרי הדרושים, מכין טיוטות פולואפ, ממליץ על משרות ושולח התראה כשמזמינים אותך לראיון. יש בו גם שדרוג קורות חיים למשרה מסוימת, והגשת קורות חיים במייל או בטופס. שניהם קורים רק כשמבקשים, וכל שליחה מחכה לאישור שלך.
 
 ## מה יש כאן
 
@@ -40,6 +40,7 @@
 - באתרי הדרושים הוא רק קורא. הוא לא לוחץ על "הגש", לא ממלא טפסים ולא מקליד סיסמאות.
 - הפרטים שלך נשמרים בדשבורד הפרטי שלך ב-Claude. הסקיל עצמו לא מכיל שום מידע אישי.
 - קורות החיים משתנים רק כשאתה מבקש, ואף עובדה לא מומצאת.
+- הגשת קורות חיים קורית רק אחרי שאתה מאשר כל משרה בנפרד. אין שליחה אוטומטית ואין שליחה המונית.
 
 ## רישיון
 
@@ -49,4 +50,4 @@ MIT. מותר להשתמש, לשנות ולשתף.
 
 ---
 
-**English:** Two Claude skills. `finding-job-clear` sets up a private, Gmail-synced job-application tracker (dashboard, follow-up drafts, job leads, push alerts, on-request CV tailoring). `human-writing` contains rules for CVs and messages that read natural and invent nothing. To install on claude.ai, download the ZIP from `dist/`, go to *Customize → Skills → + → Upload a skill*, then tell Claude "set up my job tracker" and attach your CV.
+**English:** Two Claude skills. `finding-job-clear` sets up a private, Gmail-synced job-application tracker (dashboard, follow-up drafts, job leads, push alerts, on-request CV tailoring, and CV applications sent only after you approve each one). `human-writing` contains rules for CVs and messages that read natural and invent nothing. To install on claude.ai, download the ZIP from `dist/`, go to *Customize → Skills → + → Upload a skill*, then tell Claude "set up my job tracker" and attach your CV.
