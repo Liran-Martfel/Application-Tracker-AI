@@ -377,7 +377,7 @@
     --cds-chart-status-critical: var(--danger);
     position: relative; isolation: isolate; background: var(--bg); color: var(--navy);
     font-family: var(--font-he); border-radius: var(--radius-lg); padding: clamp(16px, 3vw, 28px);
-    overflow: hidden;
+    overflow: hidden; overflow: clip;
   }
   @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .jt {
     --bg: #0e1626; --bg-2: #142039; --sand: #2a3550; --navy: #f3ecdf; --navy-deep: #fbf8f2; --accent: #9db7e6;
@@ -522,6 +522,15 @@
   .jt-secondary:active, .jt-apply:active { transform: scale(0.97); }
   .jt-secondary:focus-visible, .jt-apply:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   @media (prefers-reduced-motion: reduce) { .jt-secondary:active, .jt-apply:active { transform: none; } }
+  .jt-sheet { position: fixed; z-index: 50; left: 50%; bottom: max(16px, env(safe-area-inset-bottom, 0px)); transform: translateX(-50%);
+    width: min(640px, calc(100vw - 32px)); box-sizing: border-box; display: grid; gap: 10px; padding: 18px 20px; direction: rtl; text-align: right;
+    background: var(--glass-head); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border); border-radius: var(--radius-lg); box-shadow: 0 20px 60px rgba(27, 42, 74, 0.28); }
+  .jt-sheet[hidden] { display: none; }
+  .jt-sheet .jt-h { margin: 0; }
+  @media (prefers-reduced-motion: no-preference) { .jt-sheet:not([hidden]) { animation: jtsheet 280ms var(--ease-out) both; }
+    @keyframes jtsheet { from { opacity: 0; transform: translate(-50%, 16px); } to { opacity: 1; transform: translate(-50%, 0); } } }
+  @media (prefers-reduced-transparency: reduce) { .jt-sheet { background: var(--bg-2); -webkit-backdrop-filter: none; backdrop-filter: none; } }
 </style>
 
 <script>
@@ -1075,7 +1084,7 @@
         cell(tr, r.status, 'jt-hide-sm ' + (r.status === 'פתוחה' ? 'jt-k-progress' : 'jt-muted'));
         const ta = document.createElement('td'); const ab = document.createElement('button'); ab.type = 'button'; ab.className = 'jt-apply'; ab.textContent = 'הגש';
         ab.setAttribute('aria-label', `הגשת קורות חיים ל-${r.company}, ${r.role}`);
-        ab.addEventListener('click', () => window.JT.apply && window.JT.apply('l:' + r.id)); ta.appendChild(ab); tr.appendChild(ta);
+        ab.addEventListener('click', (ev) => { ev.preventDefault(); ev.stopPropagation(); if (window.JT.apply) window.JT.apply('l:' + r.id); }); ta.appendChild(ab); tr.appendChild(ta);
         leadsBody.appendChild(tr);
       });
     };
@@ -1228,19 +1237,40 @@
     const deliver = async (text, okMsg) => {
       out.hidden = false; out.value = text;
       try { await navigator.clipboard.writeText(text); st.textContent = okMsg; }
-      catch (e) { out.focus(); out.select(); st.textContent = 'סמן והעתק את הבקשה מהתיבה, ואז הדבק בצ\'אט עם Claude'; }
+      catch (e) { out.focus({ preventScroll: true }); out.select(); st.textContent = 'סמן והעתק את הבקשה מהתיבה, ואז הדבק בצ\'אט עם Claude'; }
     };
     document.getElementById('cv-apply').addEventListener('click', () => deliver(buildApply(), 'בקשת ההגשה הועתקה. הדבק אותה בצ\'אט עם Claude'));
+    const copyText = async (text, btn) => {
+      try { await navigator.clipboard.writeText(text); btn.textContent = 'הועתק ✓'; return true; }
+      catch (e) { btn.textContent = 'סמן והעתק מהתיבה'; return false; }
+    };
+    const sheet = document.createElement('div'); sheet.className = 'jt-sheet'; sheet.hidden = true;
+    sheet.setAttribute('role', 'dialog'); sheet.setAttribute('aria-label', 'בקשת הגשה');
+    const sTitle = document.createElement('h3'); sTitle.className = 'jt-h';
+    const sHint = document.createElement('p'); sHint.className = 'jt-note';
+    sHint.textContent = 'הבקשה מוכנה. מעתיקים אותה ומדביקים בצ\'אט עם Claude, ושם מכינים את המייל או הטופס. שום דבר לא נשלח בלי אישור שלך.';
+    const sText = document.createElement('textarea'); sText.className = 'jt-input'; sText.rows = 6; sText.readOnly = true; sText.setAttribute('aria-label', 'בקשת ההגשה');
+    const sActions = document.createElement('div'); sActions.className = 'jt-cv-actions';
+    const sCopy = document.createElement('button'); sCopy.type = 'button'; sCopy.className = 'jt-primary'; sCopy.textContent = 'העתקת הבקשה';
+    const sClose = document.createElement('button'); sClose.type = 'button'; sClose.className = 'jt-secondary'; sClose.textContent = 'סגירה';
+    sActions.append(sCopy, sClose); sheet.append(sTitle, sHint, sText, sActions);
+    document.querySelector('.jt').appendChild(sheet);
+    const closeSheet = () => { sheet.hidden = true; };
+    sCopy.addEventListener('click', async () => { if (!(await copyText(sText.value, sCopy))) { sText.focus({ preventScroll: true }); sText.select(); } });
+    sClose.addEventListener('click', closeSheet);
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !sheet.hidden) closeSheet(); });
     window.JT.apply = (key) => {
       if ([...sel.options].some((o) => o.value === key)) sel.value = key;
-      const top = document.getElementById('cv').getBoundingClientRect().top + window.scrollY - 16; window.scrollTo({ top, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
-      deliver(buildApply(), 'בקשת ההגשה הועתקה. הדבק אותה בצ\'אט עם Claude');
+      const t = targets.find((x) => x.key === sel.value);
+      sTitle.textContent = t ? `הגשה ל-${t.company}` : 'הגשת קורות חיים';
+      sText.value = buildApply(); sCopy.textContent = 'העתקת הבקשה';
+      sheet.hidden = false; sCopy.focus({ preventScroll: true });
     };
     go.addEventListener('click', async () => {
       const text = build();
       out.hidden = false; out.value = text;
       try { await navigator.clipboard.writeText(text); st.textContent = 'הבקשה הועתקה. הדבק אותה בצ\'אט עם Claude וצרף את קובץ קורות החיים'; }
-      catch (e) { out.focus(); out.select(); st.textContent = 'סמן והעתק את הבקשה מהתיבה, ואז הדבק בצ\'אט עם Claude'; }
+      catch (e) { out.focus({ preventScroll: true }); out.select(); st.textContent = 'סמן והעתק את הבקשה מהתיבה, ואז הדבק בצ\'אט עם Claude'; }
     });
   })();
 </script>
