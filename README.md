@@ -10,10 +10,11 @@
 |---|---|
 | [`finding-job-clear`](skills/finding-job-clear) | מעקב חיפוש עבודה מלא: דשבורד, סנכרון Gmail, פולואפים, משרות מומלצות, התראות ושדרוג קורות חיים |
 | [`human-writing`](skills/human-writing) | שפה אנושית: כללים לכתיבת קורות חיים, מיילים והודעות שנשמעים כמו אדם אמיתי, בלי להמציא כלום |
+| [`gmail-job-labels`](skills/gmail-job-labels) | תיוג מיילים: תווית אחת ב-Gmail לכל מיילי חיפוש העבודה, ומסנן שממשיך לתייג גם כשהמחשב כבוי |
 
 ## התקנה ב-claude.ai (שלושה צעדים)
 
-1. מורידים את הקובץ: [`finding-job-clear.zip`](dist/finding-job-clear.zip) (ובנוסף, אם רוצים, [`human-writing.zip`](dist/human-writing.zip)). בעמוד הקובץ לוחצים על כפתור ההורדה.
+1. מורידים את הקובץ: [`finding-job-clear.zip`](dist/finding-job-clear.zip) (ובנוסף, אם רוצים, [`human-writing.zip`](dist/human-writing.zip) ו-[`gmail-job-labels.zip`](dist/gmail-job-labels.zip)). בעמוד הקובץ לוחצים על כפתור ההורדה.
 2. ב-Claude נכנסים ל-<bdi>Customize → Skills → + → Create skill → Upload a skill</bdi> ומעלים את ה-ZIP כמו שהוא, בלי לפתוח אותו.
 3. כותבים ל-Claude: **תקים לי מעקב חיפוש עבודה**, ומצרפים קורות חיים.
 
@@ -50,4 +51,4 @@ MIT. מותר להשתמש, לשנות ולשתף.
 
 ---
 
-**English:** Two Claude skills. `finding-job-clear` sets up a private, Gmail-synced job-application tracker (dashboard, follow-up drafts, job leads, push alerts, on-request CV tailoring, and CV applications sent only after you approve each one). `human-writing` contains rules for CVs and messages that read natural and invent nothing. To install on claude.ai, download the ZIP from `dist/`, go to *Customize → Skills → + → Upload a skill*, then tell Claude "set up my job tracker" and attach your CV.
+**English:** Three Claude skills. `finding-job-clear` sets up a private, Gmail-synced job-application tracker (dashboard, follow-up drafts, job leads, push alerts, on-request CV tailoring, and CV applications sent only after you approve each one). `human-writing` contains rules for CVs and messages that read natural and invent nothing. `gmail-job-labels` gathers job-search mail under one Gmail label and gives you a filter that keeps labeling while your computer is off. To install on claude.ai, download the ZIP from `dist/`, go to *Customize → Skills → + → Upload a skill*, then tell Claude "set up my job tracker" and attach your CV.
