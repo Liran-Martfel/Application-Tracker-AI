@@ -1,0 +1,497 @@
+
+<!-- ===== Job agent: floating chat bubble (Ollama on the user's computer) ===== -->
+<style>
+.ja { --ja-bg: #fbf8f2; --ja-panel: rgba(255,252,246,.9); --ja-strong: #ffffff; --ja-navy: #1b2a4a; --ja-ink: #1b2a4a; --ja-muted: #5f6678; --ja-accent: #24407a; --ja-accent-soft: rgba(36,64,122,.10); --ja-gold: #b88a3e; --ja-gold-soft: rgba(184,138,62,.16); --ja-hair: rgba(27,42,74,.12); --ja-ok: #1f7a4a; --ja-bad: #b5434c; --ja-shadow: 0 18px 50px rgba(27,42,74,.25); --ja-on-navy: #fbf8f2;
+  font-family: "Assistant", "Segoe UI", Arial, sans-serif; color: var(--ja-ink); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .ja { --ja-bg: #0e1626; --ja-panel: rgba(20,32,56,.94); --ja-strong: #182642; --ja-navy: #f3ecdf; --ja-ink: #f3ecdf; --ja-muted: #b7b0a2; --ja-accent: #9db7e6; --ja-accent-soft: rgba(157,183,230,.14); --ja-gold: #e2bd76; --ja-gold-soft: rgba(226,189,118,.16); --ja-hair: rgba(243,236,223,.14); --ja-ok: #5cc493; --ja-bad: #ec8a91; --ja-shadow: 0 18px 50px rgba(0,0,0,.55); --ja-on-navy: #111c33; } }
+:root[data-theme="dark"] .ja { --ja-bg: #0e1626; --ja-panel: rgba(20,32,56,.94); --ja-strong: #182642; --ja-navy: #f3ecdf; --ja-ink: #f3ecdf; --ja-muted: #b7b0a2; --ja-accent: #9db7e6; --ja-accent-soft: rgba(157,183,230,.14); --ja-gold: #e2bd76; --ja-gold-soft: rgba(226,189,118,.16); --ja-hair: rgba(243,236,223,.14); --ja-ok: #5cc493; --ja-bad: #ec8a91; --ja-shadow: 0 18px 50px rgba(0,0,0,.55); --ja-on-navy: #111c33; }
+.ja * { box-sizing: border-box; }
+.ja [hidden] { display: none !important; }
+.ja-fab { position: fixed; z-index: 2147483000; right: max(20px, env(safe-area-inset-right, 0px)); bottom: max(20px, env(safe-area-inset-bottom, 0px)); width: 60px; height: 60px; border-radius: 50%; border: 0; cursor: pointer;
+  background: linear-gradient(145deg, var(--ja-accent), var(--ja-navy)); color: var(--ja-on-navy); box-shadow: var(--ja-shadow); display: grid; place-items: center; transition: transform .2s cubic-bezier(.22,1,.36,1); }
+.ja-fab:hover { transform: scale(1.06); } .ja-fab:active { transform: scale(.96); }
+.ja-fab svg { width: 28px; height: 28px; }
+.ja-fab .ja-badge { position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: var(--ja-gold); border: 2px solid var(--ja-bg); }
+.ja-panel { position: fixed; z-index: 2147483001; right: max(20px, env(safe-area-inset-right, 0px)); bottom: calc(max(20px, env(safe-area-inset-bottom, 0px)) + 72px);
+  width: min(410px, calc(100vw - 24px)); height: min(640px, calc(100vh - 120px)); display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto; overflow: hidden;
+  background: var(--ja-panel); -webkit-backdrop-filter: blur(24px) saturate(160%); backdrop-filter: blur(24px) saturate(160%); border: 1px solid var(--ja-hair); border-radius: 22px; box-shadow: var(--ja-shadow);
+  transform-origin: bottom right; animation: ja-in .22s cubic-bezier(.22,1,.36,1); }
+@media (max-width: 480px) { .ja-panel { right: 12px; left: 12px; width: auto; bottom: 92px; height: calc(100vh - 130px); } }
+@keyframes ja-in { from { opacity: 0; transform: translateY(10px) scale(.97); } }
+@media (prefers-reduced-motion: reduce) { .ja-panel { animation: none; } .ja-fab { transition: none; } }
+.ja-head { display: flex; align-items: center; gap: 10px; padding: 14px 16px 10px; border-bottom: 1px solid var(--ja-hair); }
+.ja-head h3 { margin: 0; font-size: 1.02rem; font-weight: 700; flex: 1; }
+.ja-head small { display: block; font-weight: 400; font-size: .78rem; color: var(--ja-muted); }
+.ja-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--ja-muted); flex: none; }
+.ja-dot.on { background: var(--ja-ok); } .ja-dot.off { background: var(--ja-bad); } .ja-dot.wait { background: var(--ja-gold); }
+.ja-ib { border: 0; background: transparent; color: var(--ja-muted); cursor: pointer; width: 34px; height: 34px; border-radius: 10px; font: inherit; font-size: 1.05rem; display: grid; place-items: center; }
+.ja-ib:hover { background: var(--ja-accent-soft); color: var(--ja-ink); }
+.ja-ib:focus-visible, .ja button:focus-visible, .ja textarea:focus-visible, .ja select:focus-visible, .ja input:focus-visible { outline: 2px solid var(--ja-accent); outline-offset: 2px; }
+.ja-tabs { display: flex; gap: 6px; padding: 8px 16px; }
+.ja-tab { border: 1px solid var(--ja-hair); background: transparent; color: var(--ja-ink); border-radius: 999px; padding: 4px 12px; font: inherit; font-size: .86rem; cursor: pointer; }
+.ja-tab[aria-pressed="true"] { background: var(--ja-navy); color: var(--ja-on-navy); border-color: var(--ja-navy); }
+.ja-body { overflow-y: auto; padding: 8px 14px 12px; display: flex; flex-direction: column; gap: 10px; min-height: 0; }
+.ja-msg { max-width: 90%; padding: 10px 13px; border-radius: 16px; white-space: pre-wrap; overflow-wrap: anywhere; font-size: .94rem; line-height: 1.5; min-width: 0; }
+.ja-msg.me { align-self: flex-start; background: var(--ja-navy); color: var(--ja-on-navy); border-end-start-radius: 5px; }
+.ja-msg.ai { align-self: flex-end; background: var(--ja-strong); border: 1px solid var(--ja-hair); border-end-end-radius: 5px; }
+.ja-msg.err { align-self: stretch; max-width: none; background: color-mix(in srgb, var(--ja-bad) 12%, transparent); border: 1px solid color-mix(in srgb, var(--ja-bad) 35%, transparent); }
+.ja-meta { display: block; margin-top: 4px; font-size: .72rem; color: var(--ja-muted); }
+.ja-msg.me .ja-meta { color: inherit; opacity: .7; }
+.ja-note { display: block; margin-top: 4px; font-size: .78rem; color: var(--ja-muted); }
+.ja-typing { display: inline-flex; gap: 4px; } .ja-typing i { width: 6px; height: 6px; border-radius: 50%; background: var(--ja-muted); animation: ja-b 1s infinite; } .ja-typing i:nth-child(2) { animation-delay: .15s; } .ja-typing i:nth-child(3) { animation-delay: .3s; }
+@keyframes ja-b { 50% { opacity: .25; transform: translateY(-2px); } }
+.ja-welcome { color: var(--ja-muted); font-size: .9rem; }
+.ja-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.ja-chip { border: 1px solid var(--ja-hair); background: var(--ja-strong); color: var(--ja-ink); border-radius: 999px; padding: 5px 11px; font: inherit; font-size: .84rem; cursor: pointer; }
+.ja-chip:hover { background: var(--ja-accent-soft); }
+.ja-card { border: 1px solid var(--ja-hair); background: var(--ja-bg); border-radius: 14px; padding: 10px; display: grid; gap: 6px; margin-top: 8px; white-space: normal; }
+.ja-card b { font-size: .9rem; }
+.ja-card dl { margin: 0; display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 2px 8px; font-size: .85rem; }
+.ja-card dt { color: var(--ja-muted); } .ja-card dd { margin: 0; overflow-wrap: anywhere; }
+.ja-card input, .ja-card textarea { width: 100%; }
+.ja-row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.ja-btn { min-height: 36px; padding: 0 14px; border-radius: 999px; font: inherit; font-weight: 600; font-size: .88rem; cursor: pointer; border: 1px solid transparent; background: var(--ja-navy); color: var(--ja-on-navy); }
+.ja-btn.sec { background: var(--ja-accent-soft); color: var(--ja-accent); border-color: color-mix(in srgb, var(--ja-accent) 30%, transparent); }
+.ja-btn:disabled { opacity: .5; cursor: default; }
+.ja-hint { font-size: .8rem; color: var(--ja-muted); }
+.ja-foot { border-top: 1px solid var(--ja-hair); padding: 10px 12px; display: grid; gap: 8px; }
+.ja-practice { display: grid; gap: 6px; padding: 8px 10px; border-radius: 12px; background: var(--ja-gold-soft); }
+.ja-practice select { width: 100%; }
+.ja-ask { display: flex; gap: 6px; align-items: flex-end; }
+.ja textarea, .ja select, .ja input[type="text"] { font: inherit; font-size: .92rem; color: var(--ja-ink); background: var(--ja-strong); border: 1px solid var(--ja-hair); border-radius: 12px; padding: 8px 10px; min-width: 0; }
+.ja-ask textarea { flex: 1; resize: none; min-height: 42px; max-height: 120px; }
+.ja-send { width: 42px; height: 42px; border-radius: 50%; border: 0; background: var(--ja-navy); color: var(--ja-on-navy); cursor: pointer; display: grid; place-items: center; flex: none; }
+.ja-send:disabled { opacity: .45; cursor: default; }
+.ja-mic { width: 42px; height: 42px; border-radius: 50%; border: 1px solid var(--ja-hair); background: var(--ja-strong); color: var(--ja-ink); cursor: pointer; display: grid; place-items: center; flex: none; }
+.ja-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.ja-settings { display: grid; gap: 14px; }
+.ja-settings h4 { margin: 0 0 6px; font-size: .92rem; }
+.ja-mem { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.ja-mem li { display: flex; justify-content: space-between; gap: 6px; padding: 5px 8px; border-radius: 10px; background: var(--ja-strong); border: 1px solid var(--ja-hair); font-size: .86rem; }
+</style>
+<script>
+(() => {
+  if (window.__jobAgent) return; window.__jobAgent = true;
+  const SERVERS = ['host:jobs-agent', 'host:jobs_agent'];
+  const FAST = 'qwen2.5:3b', SMART = 'qwen2.5:7b';
+  const STATUSES = ['הוגש','בתהליך','ראיון','הצעה','נדחה'], OPEN = ['הוגש','בתהליך','ראיון','הצעה'];
+  const KINDS = ['הגשה','פנייה','תגובה','התקדמות','ראיון','הצעה','דחייה'];
+  const TODAY = () => new Date().toISOString().slice(0, 10);
+  const plusDays = (d, n) => { const x = new Date(d + 'T12:00:00'); x.setDate(x.getDate() + n); return x.toISOString().slice(0, 10); };
+  const norm = (s) => String(s ?? '').toLowerCase().replace(/[\s\-_.,()'"׳״]/g, '');
+  const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+  const store = { get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch { return d; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} } };
+  const el = (tag, attrs = {}, ...kids) => { const e = document.createElement(tag); for (const [k, v] of Object.entries(attrs)) { if (k === 'class') e.className = v; else if (k === 'text') e.textContent = v; else if (k === 'html') e.innerHTML = v; else e.setAttribute(k, v); } kids.flat().forEach(k => k != null && e.append(k)); return e; };
+  const errText = (e) => String(e?.message || e?.result?.content?.[0]?.text || e?.code || e || '');
+
+  let db = null, mcp = null, assets = null, SERVER = SERVERS[0];
+  let data = { applications: [], events: [], prep: [], job_leads: [] }, loadedAt = 0;
+  let cv = null, prefs = [], installed = [], pulling = [];
+  let history = store.get('ja.history', []).slice(-20);
+  let mode = 'chat', practice = null, busy = false, opened = false;
+
+  // ---------- UI ----------
+  const root = el('div', { class: 'ja', dir: 'rtl', lang: 'he' });
+  const fab = el('button', { class: 'ja-fab', type: 'button', 'aria-label': 'פתיחת סוכן המשרות', 'aria-expanded': 'false', html: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20.5l1.4-4.6A8 8 0 1 1 21 12z"/><path d="M8.5 11h7M8.5 14h4.5"/></svg>' });
+  const panel = el('section', { class: 'ja-panel', role: 'dialog', 'aria-label': 'סוכן המשרות', hidden: '' });
+  const dot = el('span', { class: 'ja-dot' });
+  const sub = el('small', { text: 'Ollama במחשב שלך' });
+  const gear = el('button', { class: 'ja-ib', type: 'button', 'aria-label': 'הגדרות: קורות חיים וזיכרון', text: '⚙' });
+  const clear = el('button', { class: 'ja-ib', type: 'button', 'aria-label': 'ניקוי השיחה', text: '↺' });
+  const close = el('button', { class: 'ja-ib', type: 'button', 'aria-label': 'סגירה', text: '✕' });
+  const head = el('div', { class: 'ja-head' }, dot, el('h3', {}, 'סוכן המשרות', sub), gear, clear, close);
+  const tChat = el('button', { class: 'ja-tab', type: 'button', 'aria-pressed': 'true', text: 'שיחה' });
+  const tPrac = el('button', { class: 'ja-tab', type: 'button', 'aria-pressed': 'false', text: 'תרגול ראיון' });
+  const tabs = el('div', { class: 'ja-tabs' }, tChat, tPrac);
+  const body = el('div', { class: 'ja-body', 'aria-live': 'polite' });
+  const settings = el('div', { class: 'ja-body ja-settings', hidden: '' });
+  const pSel = el('select', { 'aria-label': 'משרה לתרגול' });
+  const pLang = el('select', { 'aria-label': 'שפת הראיון' }, el('option', { value: 'he', text: 'עברית' }), el('option', { value: 'en', text: 'English' }));
+  const pStart = el('button', { class: 'ja-btn', type: 'button', text: 'להתחיל ראיון' });
+  const pEnd = el('button', { class: 'ja-btn sec', type: 'button', text: 'סיכום וציון', disabled: '' });
+  const pBar = el('div', { class: 'ja-practice', hidden: '' }, pSel, el('div', { class: 'ja-row' }, pLang, pStart, pEnd));
+  const q = el('textarea', { rows: '1', placeholder: 'לשאול, לעדכן או לבקש מייל…', 'aria-label': 'הודעה לסוכן' });
+  const audio = el('input', { type: 'file', accept: 'audio/*,.m4a,.mp3,.wav,.ogg,.opus,.webm', class: 'ja-sr', id: 'ja-audio' });
+  const mic = el('label', { class: 'ja-mic', for: 'ja-audio', title: 'תמלול הקלטה', html: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg><span class="ja-sr">תמלול הקלטה</span>' });
+  const send = el('button', { class: 'ja-send', type: 'submit', 'aria-label': 'שליחה', html: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12H5M11 6l-6 6 6 6"/></svg>' });
+  const form = el('form', { class: 'ja-ask' }, mic, audio, q, send);
+  const foot = el('div', { class: 'ja-foot' }, pBar, form);
+  panel.append(head, tabs, body, settings, foot);
+  root.append(panel, fab);
+  document.body.append(root);
+
+  const setStatus = (cls, text) => { dot.className = 'ja-dot ' + cls; sub.textContent = text; };
+  function welcome() {
+    body.textContent = '';
+    const chips = el('div', { class: 'ja-chips' });
+    [['מה מחכה לי?', 'מה מחכה לי השבוע? למי צריך לענות ולמי לשלוח פולואפ?'], ['איזו משרה הכי מתאימה?', 'איזו משרה מהמשרות המומלצות הכי מתאימה לי עכשיו, ולמה?'], ['עדכון על שיחה', 'דיברתי היום בטלפון עם מגייסת מ-'], ['ניסוח מייל', 'תנסח לי מייל פולואפ קצר ל-'], ['התאמת קורות חיים', 'תבדוק את ההתאמה של קורות החיים שלי למשרה הכי מתאימה: מה מתאים, מה חסר ומה להדגיש.']]
+      .forEach(([t, v]) => { const c = el('button', { class: 'ja-chip', type: 'button', text: t }); c.addEventListener('click', () => { q.value = v; q.focus({ preventScroll: true }); }); chips.append(c); });
+    body.append(el('div', { class: 'ja-welcome', text: 'אני מכיר את ההגשות, המשרות המומלצות והאירועים בדשבורד. אפשר לשאול, לספר על שיחת טלפון או ראיון, ולבקש ניסוח למייל. כל שינוי בדשבורד מחכה לאישור שלך.' }), chips);
+    history.forEach(h => addMsg(h.role === 'user' ? 'me' : 'ai', h.text));
+  }
+  function addMsg(kind, text, meta) {
+    const m = el('div', { class: 'ja-msg ' + kind }); const t = el('div', { text });
+    m.append(t); if (meta) m.append(el('span', { class: 'ja-meta', text: meta }));
+    body.append(m); body.scrollTop = body.scrollHeight; return { m, t };
+  }
+  function beginAI() {
+    const { m, t } = addMsg('ai', ''); t.append(el('span', { class: 'ja-typing', html: '<i></i><i></i><i></i>' }));
+    const note = el('span', { class: 'ja-note' }); m.append(note);
+    busy = true; send.disabled = true;
+    const end = () => { note.remove(); busy = false; send.disabled = false; };
+    return {
+      status: (s) => { note.textContent = s; body.scrollTop = body.scrollHeight; },
+      text: (s) => { if (s) { t.textContent = s; body.scrollTop = body.scrollHeight; } },
+      attach: (n) => m.append(n),
+      done: (reply, meta, cards) => { end(); t.textContent = reply || 'לא התקבלה תשובה.'; m.append(el('span', { class: 'ja-meta', text: meta })); (cards || []).forEach(c => m.append(c)); body.scrollTop = body.scrollHeight; },
+      fail: (msg) => { end(); m.className = 'ja-msg err'; t.textContent = msg; }
+    };
+  }
+
+  // ---------- data ----------
+  const apps = () => data.applications || [], leads = () => data.job_leads || [], evs = () => data.events || [];
+  async function readDataset(id) {
+    const s = await db.doc('datasets/' + id).get(); const d = s.data(); const url = d?.source?.url;
+    if (!url) return { rows: [], doc: d };
+    const r = await fetch(url); const j = await r.json();
+    return { rows: Array.isArray(j) ? j : (j.rows || j.data || []), doc: d };
+  }
+  async function loadData(force) {
+    if (!db || (!force && Date.now() - loadedAt < 60000)) return;
+    const ids = ['applications', 'events', 'prep', 'job_leads'];
+    const res = await Promise.allSettled(ids.map(readDataset));
+    res.forEach((r, i) => { if (r.status === 'fulfilled') data[ids[i]] = r.value.rows; });
+    loadedAt = Date.now();
+  }
+
+  // ---------- model calls (start on the click, then read back) ----------
+  const ocall = async (tool, input) => { const r = await mcp.callTool(SERVER, tool, input, { cache: false }); return r.payload && typeof r.payload === 'object' ? r.payload : (r.structuredContent || JSON.parse((r.content || []).find(c => c.type === 'text')?.text || '{}')); };
+  function friendly(e) {
+    const t = errText(e);
+    if (/PULLING/.test(t)) return t.replace(/^.*PULLING:\s*/, '');
+    if (/OLLAMA_DOWN|fetch failed/.test(t)) return 'לא הצלחתי להפעיל את Ollama במחשב. צריך לפתוח אותו פעם אחת ידנית.';
+    if (e?.code === 'server_not_connected' || e?.code === 'server_not_found' || e?.code === 'not_in_manifest') return 'הסוכן עובד רק כשהדשבורד פתוח באפליקציית Claude במחשב שלך, עם התוסף jobs-agent.';
+    if (e?.code === 'not_granted') return 'לא אושרה גישה לתוסף jobs-agent. אפשר לאשר דרך תפריט ההרשאות של הדשבורד.';
+    if (/right after you act|activation/i.test(t)) return 'צריך ללחוץ בתוך הדשבורד ואז לנסות שוב.';
+    return t || 'משהו נכשל';
+  }
+  async function connect() {
+    if (!mcp) { setStatus('off', 'זמין רק באפליקציית Claude במחשב'); return false; }
+    setStatus('wait', 'מתחבר…');
+    let last = null;
+    for (const s of SERVERS) {
+      try {
+        SERVER = s;
+        const p = await ocall('ollama_models', { ensure: [FAST, SMART] });
+        installed = (p.models || []).map(m => m.name); pulling = p.pulling || [];
+        const dl = pulling.filter(x => !x.error);
+        setStatus(installed.length ? 'on' : 'wait', dl.length ? `מוריד ${dl.map(x => x.model + ' ' + x.percent + '%').join(', ')} (פעם אחת)` : 'Ollama במחשב שלך · מוכן');
+        return installed.length > 0;
+      } catch (e) { last = e; if (e?.code === 'tool_error') break; }
+    }
+    setStatus('off', friendly(last).slice(0, 80));
+    return false;
+  }
+  function pickModel(text) {
+    const heavy = mode === 'practice' || text.length > 140 || /מייל|תנסח|לנסח|השווה|השוואה|קורות|התאמ|למה|תסביר|ניתוח|מכתב|תכין/.test(text);
+    const want = heavy ? SMART : FAST;
+    if (installed.includes(want)) return want;
+    const other = heavy ? FAST : SMART;
+    if (installed.includes(other)) return other;
+    return installed.find(m => /qwen|llama3\.[1-9]|gemma|mistral/i.test(m)) || installed[0] || SMART;
+  }
+  let pendingRead = null;
+  document.addEventListener('pointerdown', () => pendingRead && pendingRead(), true);
+  document.addEventListener('keydown', () => pendingRead && pendingRead(), true);
+  async function run(model, messages, opts, ui) {
+    let job;
+    try { job = (await ocall('ollama_chat_start', { model, messages, temperature: 0.3, num_ctx: 8192, ...opts })).job_id; }
+    catch (e) { throw { message: friendly(e) }; }
+    for (;;) {
+      await sleep(1000);
+      let p;
+      try { p = await ocall('ollama_chat_poll', { job_id: job }); }
+      catch (e) {
+        if (/UNKNOWN_JOB/.test(errText(e))) throw { message: 'התשובה אבדה. נסה שוב.' };
+        ui.status('עוד רגע… התשובה תופיע בלחיצה הבאה שלך בדשבורד.');
+        p = await new Promise((resolve, reject) => {
+          pendingRead = async () => {
+            try { const r = await ocall('ollama_chat_poll', { job_id: job }); if (r.text && !opts?.format) ui.text(r.text); if (r.done) { pendingRead = null; resolve(r); } else ui.status(`כותב… ${Math.round(r.seconds || 0)} שנ׳`); }
+            catch (err) { if (/UNKNOWN_JOB/.test(errText(err))) { pendingRead = null; reject({ message: 'התשובה אבדה. נסה שוב.' }); } }
+          };
+        });
+      }
+      if (p.text && !opts?.format) ui.text(p.text);
+      if (p.done) { if (p.error) throw { message: friendly({ message: p.error }) }; return p; }
+      ui.status(`כותב… ${Math.round(p.seconds || 0)} שנ׳`);
+    }
+  }
+
+  // ---------- prompts ----------
+  const PROFILE = '{{PROFILE_SUMMARY_JS}}';
+  const WRITING = 'מיילים: כתיבה טבעית ואנושית, 4–7 שורות, תפקיד ומספר משרה מדויקים, בלי passionate / leverage / "בעל מוטיבציה גבוהה", בלי אימוג\'ים. עברית לחברה ישראלית, אנגלית לבינלאומית. חתימה: "{{SIGNATURE}}".';
+  const short = (a) => ({ id: a.id, company: a.company, role: a.role, job_id: a.job_id, status: a.status, applied: a.applied, channel: a.channel, next_step: a.next_step, direct_contact: a.direct_contact || undefined, relevant: a.relevant === false ? 'לא רלוונטי' : undefined });
+  function context(text) {
+    const words = text.split(/[\s,.;:!?()\-–"'׳״]+/).map(norm).filter(w => w.length >= 3);
+    const hit = (o) => { const h = norm(Object.values(o).join(' ')); return words.some(w => h.includes(w)); };
+    const A = apps().filter(a => hit({ c: a.company, r: a.role, j: a.job_id }));
+    const L = leads().filter(l => hit({ c: l.company, r: l.role }));
+    const out = [];
+    if (A.length) out.push('הגשות שקשורות לשאלה: ' + JSON.stringify(A.slice(0, 6).map(short)));
+    if (A.length) { const P = (data.prep || []).filter(p => A.some(a => norm(a.company) === norm(p.company))); if (P.length) out.push('הכנה לראיון: ' + JSON.stringify(P.slice(0, 2))); const E = evs().filter(e => A.some(a => norm(a.company) === norm(e.company))).slice(-6).map(e => ({ date: e.date, kind: e.kind, text: e.text, mail_state: e.mail_state })); if (E.length) out.push('אירועים: ' + JSON.stringify(E)); }
+    if (L.length) out.push('משרות מומלצות שקשורות: ' + JSON.stringify(L.slice(0, 5).map(l => ({ id: l.id, company: l.company, role: l.role, fit: l.fit, location: l.location, role_desc: l.role_desc }))));
+    if (/משר(ה|ות)|מתאים|להגיש|מומלצ/.test(text) && !L.length) out.push('המשרות המומלצות הכי מתאימות: ' + JSON.stringify(leads().filter(l => l.fit === 'מתאים מאוד').slice(0, 6).map(l => ({ id: l.id, company: l.company, role: l.role, location: l.location, role_desc: l.role_desc }))));
+    if (/מחכה|לענות|פולואפ|השבוע|מה יש|תזכיר|דחוף/.test(text)) out.push('מחכה לתשובה: ' + JSON.stringify(evs().filter(e => /מחכה לתגובה|לא נקרא/.test(e.mail_state || '')).slice(-8).map(e => ({ date: e.date, company: e.company, role: e.role, text: e.text, mail_state: e.mail_state }))) + '\nהגשות פתוחות עם צעד הבא: ' + JSON.stringify(apps().filter(a => OPEN.includes(a.status) && a.relevant !== false && a.next_step).slice(0, 12).map(short)));
+    if (!out.length) out.push('כל ההגשות (id | חברה | תפקיד | סטטוס):\n' + apps().map(a => `${a.id} | ${a.company} | ${a.role} | ${a.status}`).join('\n') + '\nמשרות מומלצות (id | חברה | תפקיד | התאמה):\n' + leads().map(l => `${l.id} | ${l.company} | ${l.role} | ${l.fit}`).join('\n'));
+    if (cv?.text && /קורות|התאמ|cv|מתאים לי|להדגיש|חסר/i.test(text)) out.push('קורות החיים של המשתמש:\n' + cv.text.slice(0, 3500));
+    return out.join('\n');
+  }
+  const system = (text) => `אתה "סוכן המשרות" של ${PROFILE}
+היום ${TODAY()}. יש ${apps().length} הגשות ו-${leads().length} משרות מומלצות.
+${prefs.length ? 'העדפות שהמשתמש ביקש לזכור: ' + prefs.map(p => p.text).join('; ') : ''}
+נתונים אמיתיים מהדשבורד:
+${context(text)}
+עונים רק על סמך הנתונים. לא ממציאים חברות, תאריכים, דרישות או כתובות. אם משהו לא מופיע — אומרים שלא מצאת.
+${WRITING}
+מחזירים JSON בלבד: {"reply":"תשובה בעברית תקינה ופשוטה","actions":[],"email":null,"remember":null}
+actions ריק כברירת מחדל. מוסיפים פעולה רק כשהמשתמש מספר על משהו חדש שקרה. סוגים: {"type":"update_application","id":"<id>","status":"הוגש|בתהליך|ראיון|הצעה|נדחה","next_step":"","note":""} / {"type":"add_application","company":"","role":"","job_id":"","channel":"","applied":"YYYY-MM-DD"} / {"type":"add_event","company":"","role":"","date":"YYYY-MM-DD","kind":"פנייה|תגובה|התקדמות|ראיון|הצעה|דחייה","text":""} / {"type":"remove_lead","id":"<id>","reason":""}
+email: null, אלא אם ביקש מייל: {"to":"","subject":"","body":""}. remember: טקסט רק כשאמר "תזכור". בלי מספרי טלפון ושמות של מגייסים.`;
+  function practiceSystem(job, lang) {
+    const prep = (data.prep || []).find(p => norm(p.company) === norm(job.company));
+    const lead = leads().find(l => l.id === job.id);
+    const he = lang === 'he';
+    return `${he ? 'אתה מראיין עבודה' : 'You are a job interviewer'} at ${job.company} for "${job.role}"${job.job_id ? ' (' + job.job_id + ')' : ''}. Candidate: ${PROFILE}
+${prep ? 'Prep: ' + [prep.about, prep.questions, prep.todo].filter(Boolean).join(' | ') : ''}${lead?.role_desc ? '\nRole: ' + lead.role_desc : ''}${cv?.text ? '\nCV: ' + cv.text.slice(0, 2000) : ''}
+${he ? 'כללים: עברית. שאלה אחת בכל פעם ומחכים. אחרי כל תשובה: שורה אחת מה היה טוב, שורה אחת מה לשפר (קונקרטי), ואז השאלה הבאה. בלי מחמאות ריקות. כשמבקשים "סיכום": 3 חוזקות, 3 דברים לשפר, וציון 1–10 עם הסבר קצר.' : 'Rules: English. One question at a time, then wait. After each answer: one line on what was good, one concrete line to improve, then the next question. No empty praise. On "summary": 3 strengths, 3 improvements, a 1-10 score with a short reason.'}`;
+  }
+  function extractJSON(t) { if (!t) return null; try { return JSON.parse(t); } catch {} const a = t.indexOf('{'), b = t.lastIndexOf('}'); if (a >= 0 && b > a) { try { return JSON.parse(t.slice(a, b + 1)); } catch {} } return null; }
+
+  // ---------- applying an approved change straight into the dashboard ----------
+  const LABEL = { update_application: 'עדכון הגשה', add_application: 'הגשה חדשה', add_event: 'אירוע חדש', remove_lead: 'הסרת משרה מומלצת' };
+  const FIELD = { company: 'חברה', role: 'תפקיד', job_id: 'מס׳ משרה', channel: 'ערוץ', applied: 'הוגש', status: 'סטטוס', next_step: 'צעד הבא', note: 'הערה', date: 'תאריך', kind: 'סוג', text: 'תיאור', reason: 'סיבה' };
+  function validate(a) {
+    if (!a || !LABEL[a.type]) return null;
+    const c = { type: a.type };
+    for (const k of ['id', ...Object.keys(FIELD)]) if (a[k] != null && String(a[k]).trim() !== '') c[k] = String(a[k]).trim().replace(/\+?\d[\d\- ]{7,}\d/g, '[מספר הוסר]');
+    if (c.status && !STATUSES.includes(c.status)) delete c.status;
+    if (c.kind && !KINDS.includes(c.kind)) c.kind = 'התקדמות';
+    if (c.type === 'update_application') { const x = apps().find(r => r.id === c.id); if (!x) return null; c._label = `${x.company} – ${x.role}`; if (!c.status && !c.next_step && !c.note) return null; }
+    if (c.type === 'remove_lead') { const x = leads().find(r => r.id === c.id); if (!x) return null; c._label = `${x.company} – ${x.role}`; }
+    if (c.type === 'add_application' && (!c.company || !c.role)) return null;
+    if (c.type === 'add_event') { if (!c.company || !c.text) return null; c.date = c.date || TODAY(); }
+    return c;
+  }
+  async function saveDataset(id, rows, prevDoc) {
+    const blob = new Blob([JSON.stringify(rows)], { type: 'application/json' });
+    const up = await assets.upload(blob);
+    await db.doc('datasets/' + id).update({ source: { kind: 'file', url: '/_blob/' + up.id, name: (prevDoc?.source?.name) || id + '.json' }, updated: { at: new Date().toISOString(), by: 'סוכן המשרות (באישור המשתמש)' } });
+  }
+  async function applyChange(c) {
+    if (!db || !assets) throw new Error('no-write');
+    const t = TODAY(), sets = {};
+    const get = async (id) => sets[id] || (sets[id] = await readDataset(id));
+    const A = await get('applications'), E = await get('events');
+    const evRow = (company, role, kind, text) => ({ id: 'agent-' + Date.now().toString(36), date: c.date || t, company, role: role || '', kind, text, link: '', action: false, mail_state: 'נקרא', thread_id: '', msg_id: '' });
+    const touched = new Set(['events']);
+    const setStatus = async (row, status) => {
+      if (!status) return;
+      row.status = status; row.last_update = t;
+      if (status === 'נדחה') { row.next_step = ''; row.followup_after = ''; const P = await get('prep'); P.rows = P.rows.filter(p => p.app_id !== row.id && norm(p.company) !== norm(row.company)); touched.add('prep'); }
+      if (status === 'הוגש' || status === 'בתהליך') row.followup_after = plusDays(t, 10);
+      touched.add('applications');
+    };
+    if (c.type === 'update_application') {
+      const row = A.rows.find(r => r.id === c.id); if (!row) throw new Error('ההגשה לא נמצאה');
+      await setStatus(row, c.status);
+      if (c.next_step) row.next_step = c.next_step;
+      if (c.note) row.note = [row.note, c.note].filter(Boolean).join(' | ');
+      row.last_update = t; touched.add('applications');
+      E.rows.push(evRow(row.company, row.role, c.status === 'נדחה' ? 'דחייה' : c.status === 'ראיון' ? 'ראיון' : c.status === 'הצעה' ? 'הצעה' : 'התקדמות', 'עדכון ידני דרך הסוכן: ' + [c.status, c.next_step, c.note].filter(Boolean).join(' · ')));
+    } else if (c.type === 'add_application') {
+      if (A.rows.some(r => (norm(r.company) === norm(c.company) && norm(r.role) === norm(c.role)) || (c.job_id && r.job_id === c.job_id))) throw new Error('ההגשה כבר קיימת בדשבורד');
+      const id = (norm(c.company).replace(/[^a-z0-9א-ת]/g, '').slice(0, 16) || 'app') + '-' + (c.job_id || Date.now().toString(36).slice(-4));
+      const applied = c.applied || t;
+      A.rows.push({ id, company: c.company, role: c.role, job_id: c.job_id || '', channel: c.channel || 'אחר', applied, status: c.status || 'הוגש', last_update: t, next_step: 'ממתין לתגובה', note: 'נוסף ידנית דרך הסוכן' + (c.note ? ' | ' + c.note : ''), link: '', thread_id: '', level: /junior|ג'וניור|ג׳וניור|entry/i.test(c.role) ? "בוגר/ג'וניור" : /intern|student|סטודנט/i.test(c.role) ? 'סטודנט' : 'לא צוין', origin: /[א-ת]/.test(c.company) ? 'ישראלית' : 'לא ידוע', cv_version: 'לא ידוע', followup_after: plusDays(applied, 10), followup_draft: '', direct_contact: '', direct_contact_note: '' });
+      E.rows.push(evRow(c.company, c.role, 'הגשה', 'הגשה (נוספה דרך הסוכן)'));
+      touched.add('applications');
+      const Lx = await get('job_leads'); const before = Lx.rows.length; Lx.rows = Lx.rows.filter(l => !(norm(l.company) === norm(c.company) && norm(l.role) === norm(c.role))); if (Lx.rows.length !== before) touched.add('job_leads');
+    } else if (c.type === 'add_event') {
+      E.rows.push(evRow(c.company, c.role, c.kind || 'התקדמות', c.text));
+      const row = A.rows.find(r => norm(r.company).includes(norm(c.company)) || norm(c.company).includes(norm(r.company)));
+      if (row && ['ראיון', 'הצעה', 'דחייה'].includes(c.kind)) await setStatus(row, c.kind === 'דחייה' ? 'נדחה' : c.kind);
+    } else if (c.type === 'remove_lead') {
+      const Lx = await get('job_leads'); Lx.rows = Lx.rows.filter(l => l.id !== c.id); touched.add('job_leads'); touched.delete('events');
+    }
+    for (const id of touched) await saveDataset(id, sets[id].rows, sets[id].doc);
+    for (const id of Object.keys(sets)) data[id] = sets[id].rows;
+  }
+  function actionCard(a) {
+    const dl = el('dl');
+    Object.entries(a).forEach(([k, v]) => { if (k === 'type' || k === '_label' || k === 'id') return; dl.append(el('dt', { text: FIELD[k] || k }), el('dd', { text: v })); });
+    const ok = el('button', { class: 'ja-btn', type: 'button', text: 'לאשר ולעדכן' });
+    const no = el('button', { class: 'ja-btn sec', type: 'button', text: 'לא' });
+    const st = el('span', { class: 'ja-hint' });
+    const card = el('div', { class: 'ja-card' }, el('b', { text: LABEL[a.type] + (a._label ? ': ' + a._label : '') }), dl, el('div', { class: 'ja-row' }, ok, no, st));
+    ok.addEventListener('click', async () => {
+      ok.disabled = no.disabled = true; st.textContent = 'מעדכן את הדשבורד…';
+      const { _label, ...c } = a;
+      try { await applyChange(c); st.textContent = 'עודכן בדשבורד ✓'; card.style.opacity = '.75'; }
+      catch (e) {
+        if (/כבר קיימת|לא נמצאה/.test(errText(e))) { st.textContent = errText(e); return; }
+        try { await db.collection('agent_changes').add({ ...c, label: _label || '', state: 'pending', created_at: new Date().toISOString() }); st.textContent = 'נשמר. ייכנס לדשבורד בהרצה הבאה של Claude.'; }
+        catch { st.textContent = 'העדכון נכשל. אפשר לספר לי בצ\'אט עם Claude.'; ok.disabled = no.disabled = false; }
+      }
+    });
+    no.addEventListener('click', () => card.remove());
+    return card;
+  }
+  function emailCard(m) {
+    const to = el('input', { type: 'text', value: m.to || '', placeholder: 'נמען', dir: 'ltr', 'aria-label': 'נמען' });
+    const sj = el('input', { type: 'text', value: m.subject || '', placeholder: 'נושא', 'aria-label': 'נושא' });
+    const bd = el('textarea', { rows: '7', 'aria-label': 'גוף המייל' }); bd.value = m.body || '';
+    const mk = el('button', { class: 'ja-btn', type: 'button', text: 'טיוטה ב-Gmail' });
+    const cp = el('button', { class: 'ja-btn sec', type: 'button', text: 'העתקה' });
+    const st = el('span', { class: 'ja-hint' });
+    cp.addEventListener('click', async () => { const tx = (sj.value ? sj.value + '\n\n' : '') + bd.value; try { await navigator.clipboard.writeText(tx); st.textContent = 'הועתק.'; } catch { bd.focus({ preventScroll: true }); bd.select(); try { document.execCommand('copy'); st.textContent = 'הועתק.'; } catch { st.textContent = 'סמן והעתק.'; } } });
+    mk.addEventListener('click', async () => {
+      const addr = to.value.trim(); if (addr && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(addr)) { st.textContent = 'כתובת לא תקינה.'; return; }
+      mk.disabled = true; st.textContent = 'יוצר טיוטה…';
+      try { const r = await mcp.callTool('Gmail', 'create_draft', { to: addr ? [addr] : [], subject: sj.value, body: bd.value }, { cache: false }); const p = r.payload || r.structuredContent || {}; st.textContent = 'נשמרה ב-Gmail (לא נשלחה). '; if (p.viewUrl) st.append(el('a', { href: p.viewUrl, target: '_blank', rel: 'noopener', text: 'לפתיחה' })); }
+      catch { st.textContent = 'לא הצלחתי ליצור טיוטה. אפשר להעתיק.'; mk.disabled = false; }
+    });
+    return el('div', { class: 'ja-card' }, el('b', { text: 'טיוטת מייל' }), to, sj, bd, el('div', { class: 'ja-row' }, mk, cp, st));
+  }
+
+  // ---------- memory + CV (kept in the dashboard's own store) ----------
+  async function savePrefs(list) { try { await db.doc('agent/prefs').set({ items: list.slice(-40) }); prefs = list; renderSettings(); return true; } catch { return false; } }
+  async function addPref(t) { t = String(t || '').trim().slice(0, 200); if (!t || prefs.some(p => norm(p.text) === norm(t))) return true; return savePrefs([...prefs, { id: 'p' + Date.now().toString(36), text: t }]); }
+  function loadScript(src) { return new Promise((res, rej) => { if (document.querySelector(`script[src="${src}"]`)) return res(); const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = () => rej(new Error('טעינה נכשלה')); document.head.append(s); }); }
+  async function fileToText(f) {
+    const n = f.name.toLowerCase();
+    if (n.endsWith('.txt')) return f.text();
+    if (n.endsWith('.docx')) { await loadScript('https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js'); return (await window.mammoth.extractRawText({ arrayBuffer: await f.arrayBuffer() })).value; }
+    if (n.endsWith('.pdf')) {
+      await loadScript('https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js'); await loadScript('https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js');
+      const pdf = await window.pdfjsLib.getDocument({ data: new Uint8Array(await f.arrayBuffer()), isEvalSupported: false }).promise; let out = '';
+      for (let i = 1; i <= pdf.numPages; i++) { const tc = await (await pdf.getPage(i)).getTextContent(); out += tc.items.map(it => it.str + (it.hasEOL ? '\n' : ' ')).join('') + '\n'; }
+      return out;
+    }
+    throw new Error('PDF, Word או טקסט בלבד');
+  }
+  function renderSettings() {
+    settings.textContent = '';
+    const cvStat = el('p', { class: 'ja-hint', text: cv?.text ? `שמורים קורות חיים: ${cv.filename || 'טקסט'} (${cv.text.length.toLocaleString('he-IL')} תווים).` : 'עוד לא הועלו קורות חיים. אחרי ההעלאה הסוכן יבדוק התאמה למשרות ויתרגל איתך ראיון לפיהם.' });
+    const file = el('input', { type: 'file', accept: '.pdf,.docx,.txt', class: 'ja-sr', id: 'ja-cvfile' });
+    const pick = el('label', { class: 'ja-btn sec', for: 'ja-cvfile', style: 'display:inline-grid;place-items:center', text: 'העלאת קורות חיים' });
+    file.addEventListener('change', async () => {
+      const f = file.files?.[0]; file.value = ''; if (!f) return; cvStat.textContent = 'קורא את הקובץ…';
+      try { const t = (await fileToText(f)).replace(/\n{3,}/g, '\n\n').trim(); if (t.length < 80) { cvStat.textContent = 'לא הצלחתי לקרוא טקסט (אולי PDF סרוק).'; return; } await db.doc('agent/cv').set({ text: t.slice(0, 20000), filename: f.name, updated_at: new Date().toISOString() }); cv = { text: t, filename: f.name }; renderSettings(); }
+      catch (e) { cvStat.textContent = 'נכשל: ' + errText(e); }
+    });
+    const ul = el('ul', { class: 'ja-mem' });
+    if (!prefs.length) ul.append(el('li', {}, el('span', { class: 'ja-hint', text: 'עוד לא נשמר כלום. כותבים בשיחה "תזכור ש…".' })));
+    prefs.forEach(p => { const x = el('button', { class: 'ja-ib', type: 'button', 'aria-label': 'מחיקה', text: '✕' }); x.addEventListener('click', () => savePrefs(prefs.filter(y => y.id !== p.id))); ul.append(el('li', {}, el('span', { text: p.text }), x)); });
+    const memIn = el('input', { type: 'text', placeholder: 'למשל: מעדיף משרה היברידית', 'aria-label': 'העדפה חדשה' });
+    const memAdd = el('button', { class: 'ja-btn sec', type: 'button', text: 'הוספה' });
+    memAdd.addEventListener('click', async () => { if (await addPref(memIn.value)) memIn.value = ''; });
+    const models = el('p', { class: 'ja-hint', text: `המודל נבחר לבד: ${FAST} לשאלות קצרות (מהיר), ${SMART} למיילים, השוואות ותרגול. מותקנים: ${installed.join(', ') || 'לא ידוע עדיין'}.` });
+    const back = el('button', { class: 'ja-btn sec', type: 'button', text: 'חזרה לשיחה' }); back.addEventListener('click', () => showSettings(false));
+    settings.append(el('div', {}, el('h4', { text: 'קורות חיים' }), cvStat, el('div', { class: 'ja-row' }, pick, file)),
+      el('div', {}, el('h4', { text: 'מה הסוכן זוכר עליך' }), ul, el('div', { class: 'ja-row', style: 'margin-top:6px' }, memIn, memAdd)),
+      el('div', {}, el('h4', { text: 'מודלים' }), models), back);
+  }
+  function showSettings(on) { settings.hidden = !on; body.hidden = on; foot.hidden = on; tabs.hidden = on; if (on) renderSettings(); }
+
+  // ---------- practice ----------
+  function fillJobs() {
+    const cur = pSel.value; pSel.textContent = '';
+    const opts = [...apps().filter(a => ['בתהליך', 'ראיון', 'הצעה'].includes(a.status)).map(a => ({ id: a.id, company: a.company, role: a.role, job_id: a.job_id, tag: 'בתהליך' })),
+      ...apps().filter(a => a.status === 'הוגש' && a.relevant !== false).map(a => ({ id: a.id, company: a.company, role: a.role, job_id: a.job_id, tag: 'הוגש' })),
+      ...leads().filter(l => l.fit === 'מתאים מאוד').map(l => ({ id: l.id, company: l.company, role: l.role, tag: 'מומלצת' }))];
+    if (!opts.length) pSel.append(el('option', { value: '', text: 'טוען משרות…' }));
+    opts.forEach(o => pSel.append(el('option', { value: JSON.stringify(o), text: `${o.company} – ${o.role} (${o.tag})` })));
+    if ([...pSel.options].some(o => o.value === cur)) pSel.value = cur;
+  }
+  function setMode(m) { mode = m; tChat.setAttribute('aria-pressed', String(m === 'chat')); tPrac.setAttribute('aria-pressed', String(m === 'practice')); pBar.hidden = m !== 'practice'; q.placeholder = m === 'practice' ? 'התשובה שלך למראיין…' : 'לשאול, לעדכן או לבקש מייל…'; if (m === 'practice') fillJobs(); }
+  async function practiceTurn(text) {
+    const ui = beginAI();
+    try {
+      if (!installed.length && !(await connect())) throw { message: sub.textContent };
+      practice.msgs.push({ role: 'user', content: text });
+      const model = pickModel(text);
+      const p = await run(model, [{ role: 'system', content: practiceSystem(practice.job, practice.lang) }, ...practice.msgs], { temperature: 0.5 }, ui);
+      practice.msgs.push({ role: 'assistant', content: p.text });
+      ui.done(p.text, `${model} · ${Number(p.seconds || 0).toFixed(0)} שנ׳`);
+    } catch (e) { practice.msgs.pop(); ui.fail(errText(e)); }
+  }
+  pStart.addEventListener('click', () => { if (!pSel.value) return; practice = { job: JSON.parse(pSel.value), lang: pLang.value, msgs: [] }; pEnd.disabled = false; addMsg('me', `▶ תרגול ראיון: ${practice.job.company} – ${practice.job.role}`); practiceTurn(practice.lang === 'he' ? 'בוא נתחיל. תציג את עצמך בקצרה ותשאל את השאלה הראשונה.' : "Let's start. Introduce yourself briefly and ask the first question."); });
+  pEnd.addEventListener('click', () => { if (!practice) return; addMsg('me', 'סיכום'); practiceTurn(practice.lang === 'he' ? 'סיכום' : 'summary'); pEnd.disabled = true; });
+
+  // ---------- chat ----------
+  async function ask(text) {
+    const ui = beginAI();
+    try {
+      if (!installed.length && !(await connect())) throw { message: sub.textContent };
+      await loadData();
+      const model = pickModel(text);
+      ui.status(model === FAST ? 'עונה במודל המהיר…' : 'עונה במודל החכם…');
+      const base = history.slice(-4).map(h => h.role === 'user' ? { role: 'user', content: h.text } : { role: 'assistant', content: JSON.stringify({ reply: h.text }) });
+      const p = await run(model, [{ role: 'system', content: system(text) }, ...base, { role: 'user', content: text }], { format: 'json' }, ui);
+      const j = extractJSON(p.text);
+      const reply = (j && typeof j.reply === 'string' && j.reply.trim()) ? j.reply.trim() : (p.text || '').trim();
+      const cards = [];
+      if (/(התקשר|דיברתי|שיחה|קבענו|זימנו|הזמינו|ראיון|דחו|דחייה|לא התקבלתי|הצעה|הגשתי|שלחתי|עדכן|תעדכן|תוסיף|תסמן|תמחק|לא רלוונטי|נסגרה)/.test(text))
+        (Array.isArray(j?.actions) ? j.actions : []).map(validate).filter(Boolean).slice(0, 4).forEach(a => cards.push(actionCard(a)));
+      if (j?.email && (j.email.body || j.email.subject) && /מייל|אימייל|מכתב|לנסח|תנסח|טיוטה|פולואפ|email/i.test(text)) cards.push(emailCard(j.email));
+      if (typeof j?.remember === 'string' && j.remember && /תזכור|זכור|תשמור/.test(text)) { await addPref(j.remember); cards.push(el('span', { class: 'ja-meta', text: 'נשמר בזיכרון: ' + j.remember })); }
+      ui.done(reply, `${model === FAST ? 'מהיר' : 'חכם'} · ${model} · ${Number(p.seconds || 0).toFixed(0)} שנ׳`, cards);
+      history.push({ role: 'user', text }, { role: 'assistant', text: reply }); history = history.slice(-20); store.set('ja.history', history);
+    } catch (e) { ui.fail(errText(e)); }
+  }
+  form.addEventListener('submit', (e) => {
+    e.preventDefault(); const text = q.value.trim(); if (!text || busy) return;
+    q.value = ''; q.style.height = '';
+    addMsg('me', text);
+    if (mode === 'practice') { if (!practice) { addMsg('err', 'קודם בוחרים משרה ולוחצים "להתחיל ראיון".'); return; } practiceTurn(text); }
+    else ask(text);
+  });
+  q.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); form.requestSubmit(); } });
+  q.addEventListener('input', () => { q.style.height = 'auto'; q.style.height = Math.min(q.scrollHeight, 120) + 'px'; });
+  let warmed = false;
+  q.addEventListener('focus', () => { if (warmed || !mcp || !installed.length) return; warmed = true; ocall('ollama_chat_start', { model: pickModel(''), messages: [], num_ctx: 8192 }).catch(() => { warmed = false; }); });
+  audio.addEventListener('change', async () => {
+    const f = audio.files?.[0]; audio.value = ''; if (!f || !mcp) return;
+    if (f.size > 15 * 1024 * 1024) { addMsg('err', 'ההקלטה גדולה מדי (עד כ-10 דקות).'); return; }
+    const w = addMsg('ai', `מתמלל את "${f.name}"… (בפעם הראשונה יורד מודל תמלול, זה לוקח כמה דקות)`);
+    try {
+      const b64 = await new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(',')[1]); r.onerror = rej; r.readAsDataURL(f); });
+      const p = await ocall('transcribe_audio', { audio_base64: b64, filename: f.name, language: 'he', model_size: 'small' });
+      w.m.remove(); q.value = (q.value ? q.value + '\n' : '') + 'תמלול הקלטה: ' + (p.text || ''); q.focus({ preventScroll: true });
+    } catch (e) { w.m.remove(); const t = errText(e); addMsg('err', /NO_WHISPER/.test(t) ? 'לתמלול צריך להתקין פעם אחת בטרמינל: pip install faster-whisper' : /NO_PYTHON/.test(t) ? 'לא נמצא Python במחשב, אז אי אפשר לתמלל.' : 'התמלול נכשל: ' + t.slice(0, 160)); }
+  });
+
+  // ---------- open / close ----------
+  function toggle(on) {
+    opened = on ?? !opened; panel.hidden = !opened; fab.setAttribute('aria-expanded', String(opened));
+    fab.innerHTML = opened ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>' : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20.5l1.4-4.6A8 8 0 1 1 21 12z"/><path d="M8.5 11h7M8.5 14h4.5"/></svg>';
+    if (opened) { q.focus({ preventScroll: true }); connect(); loadData(); }
+  }
+  fab.addEventListener('click', () => toggle());
+  close.addEventListener('click', () => toggle(false));
+  gear.addEventListener('click', () => showSettings(settings.hidden));
+  clear.addEventListener('click', () => { history = []; store.set('ja.history', []); practice = null; pEnd.disabled = true; welcome(); });
+  tChat.addEventListener('click', () => setMode('chat')); tPrac.addEventListener('click', () => setMode('practice'));
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && opened) toggle(false); });
+
+  welcome();
+  (async () => {
+    const C = window.claude; if (!C?.use) return;
+    [db, mcp, assets] = await Promise.all([C.use('db'), C.use('mcp'), C.use('assets')]);
+    if (db) {
+      try { const s = await db.doc('agent/cv').get(); if (s.exists) cv = s.data(); } catch {}
+      try { const s = await db.doc('agent/prefs').get(); if (s.exists) prefs = s.data()?.items || []; } catch {}
+    }
+    setStatus(mcp ? '' : 'off', mcp ? 'לוחצים כדי להתחבר' : 'זמין רק באפליקציית Claude במחשב');
+  })();
+})();
+</script>
