@@ -18,7 +18,7 @@ const RULES = [
   ['הצעה', /job offer|offer letter|pleased to offer|הצעת עבודה|שמחים להציע/i],
   ['ראיון', /interview|phone screen|schedule a (call|time)|your availability|available to talk|ראיון|זימון|לתאם שיחה|לקבוע שיחה|שיחת היכרות|מתי נוח/i],
   ['מטלה', /assessment|home assignment|technical test|coding challenge|מבחן|מטלה|מטלת בית/i],
-  ['אישור הגשה', /thank you for applying|application (was )?received|we received your application|candidate database|application was sent|קיבלנו את|פנייתך התקבלה|הגשת מועמדות|מועמדותך התקבלה/i],
+  ['אישור הגשה', /thank you for applying|thank(s| you) for your interest|thanks for applying|קורות החיים .*התקבלו|application (was )?received|we received your application|candidate database|application was sent|קיבלנו את|פנייתך התקבלה|הגשת מועמדות|מועמדותך התקבלה/i],
   ['נצפה', /viewed your application|application was viewed|צפה במועמדות/i]
 ];
 const STRIP_PHONES = (s) => String(s || '').replace(/(?:\+972|\b0)(?:[\s-]?\d){8,9}\b/g, '[מספר הוסר]');
@@ -52,6 +52,8 @@ function companyFrom_(email, subject) {
 
 function runFeed(lookback) {
   if (typeof lookback !== 'string') lookback = LOOKBACK;
+  const ms = SpreadsheetApp.openById(SHEET_ID).getSheetByName('מיילים');
+  if (!ms || ms.getLastRow() <= 1) lookback = '30d';   // empty sheet → look back a month
   const started = new Date();
   const st = sheet_('סטטוס', ['last_run', 'new_mails', 'new_jobs', 'seconds', 'error']);
   st.getRange(2, 1, 1, 5).setValues([[Utilities.formatDate(started, 'Asia/Jerusalem', 'yyyy-MM-dd HH:mm') + ' (רץ…)', '', '', '', '']]);
@@ -68,7 +70,7 @@ function runFeedInner_(started, st, lookback) {
   const mails = sheet_('מיילים', ['msg_id', 'thread_id', 'date', 'kind', 'company', 'from_domain', 'subject', 'link', 'direction']);
   const have = seen_(mails, 1);
   const q = `newer_than:${lookback} -in:spam -in:trash ((${SENDERS.map((s) => 'from:' + s).join(' OR ')}) OR subject:(${SUBJECT_WORDS.join(' OR ')}) OR label:"${LABEL}")`;
-  const sentQ = `newer_than:${lookback} in:sent (subject:(קורות OR CV OR "Curriculum" OR resume OR מועמדות OR application OR "follow up" OR פולואפ) OR has:attachment filename:(pdf OR docx))`;
+  const sentQ = `newer_than:${lookback} in:sent subject:(קורות OR "קו״ח" OR CV OR resume OR מועמדות OR משרה OR application OR "follow up" OR פולואפ OR "job")`;
   const rows = [];
   [[q, 'נכנס'], [sentQ, 'יוצא']].forEach(([query, dir]) => {
     GmailApp.search(query, 0, 60).forEach((th) => { try {
@@ -88,7 +90,7 @@ function runFeedInner_(started, st, lookback) {
         if (!mine) {
           for (const [k, re] of RULES) if (re.test(subject)) { kind = k; break; }       // the subject decides first
           if (kind === 'אחר') for (const [k, re] of RULES) if (re.test(text)) { kind = k; break; }
-          if (kind === 'ראיון' && RULES[4][1].test(text) && !/schedule|availability|invite|זימון|לתאם|מתי נוח/i.test(text)) kind = 'אישור הגשה';
+          if ((kind === 'ראיון' || kind === 'אחר') && RULES[4][1].test(subject + '\n' + body.slice(0, 600)) && !/schedule|availability|invite you|זימון|לתאם|מתי נוח/i.test(text)) kind = 'אישור הגשה';
         }
         const dom = (from.match(/@([^>\s]+)/) || [])[1] || '';
         rows.push([id, th.getId(), Utilities.formatDate(m.getDate(), 'Asia/Jerusalem', 'yyyy-MM-dd HH:mm'), kind,
