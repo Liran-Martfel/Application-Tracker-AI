@@ -26,7 +26,9 @@ const STRIP_PHONES = (s) => String(s || '').replace(/(?:\+972|\b0)(?:[\s-]?\d){8
 function setup() {
   ScriptApp.getProjectTriggers().forEach((t) => { if (t.getHandlerFunction() === 'runFeed') ScriptApp.deleteTrigger(t); });
   ScriptApp.newTrigger('runFeed').timeBased().everyHours(1).create();
-  runFeed();
+  const ss = SpreadsheetApp.openById(SHEET_ID);
+  ['גיליון1', 'Sheet1'].forEach((n) => { const sh = ss.getSheetByName(n); if (sh && ss.getSheets().length > 1 && sh.getLastRow() === 0) ss.deleteSheet(sh); });
+  runFeed('30d');
 }
 
 function sheet_(name, header) {
@@ -48,19 +50,28 @@ function companyFrom_(email, subject) {
   return dom.replace(/^(mail|email|jobs|careers|hr|noreply|no-reply)\./, '').split('.')[0] || '';
 }
 
-function runFeed() {
+function runFeed(lookback) {
+  if (typeof lookback !== 'string') lookback = LOOKBACK;
   const started = new Date();
+  const st = sheet_('סטטוס', ['last_run', 'new_mails', 'new_jobs', 'seconds', 'error']);
+  st.getRange(2, 1, 1, 5).setValues([[Utilities.formatDate(started, 'Asia/Jerusalem', 'yyyy-MM-dd HH:mm') + ' (רץ…)', '', '', '', '']]);
+  SpreadsheetApp.flush();
+  try { runFeedInner_(started, st, lookback); }
+  catch (e) { st.getRange(2, 5).setValue(String(e && e.message || e)); throw e; }
+}
+
+function runFeedInner_(started, st, lookback) {
   let label = GmailApp.getUserLabelByName(LABEL) || GmailApp.createLabel(LABEL);
   const me = Session.getActiveUser().getEmail().toLowerCase();
 
   // 1) job mail → "מיילים"
   const mails = sheet_('מיילים', ['msg_id', 'thread_id', 'date', 'kind', 'company', 'from_domain', 'subject', 'link', 'direction']);
   const have = seen_(mails, 1);
-  const q = `newer_than:${LOOKBACK} -in:spam -in:trash ((${SENDERS.map((s) => 'from:' + s).join(' OR ')}) OR subject:(${SUBJECT_WORDS.join(' OR ')}) OR label:"${LABEL}")`;
-  const sentQ = `newer_than:${LOOKBACK} in:sent (subject:(קורות OR CV OR "Curriculum" OR resume OR מועמדות OR application OR "follow up" OR פולואפ) OR has:attachment filename:(pdf OR docx))`;
+  const q = `newer_than:${lookback} -in:spam -in:trash ((${SENDERS.map((s) => 'from:' + s).join(' OR ')}) OR subject:(${SUBJECT_WORDS.join(' OR ')}) OR label:"${LABEL}")`;
+  const sentQ = `newer_than:${lookback} in:sent (subject:(קורות OR CV OR "Curriculum" OR resume OR מועמדות OR application OR "follow up" OR פולואפ) OR has:attachment filename:(pdf OR docx))`;
   const rows = [];
   [[q, 'נכנס'], [sentQ, 'יוצא']].forEach(([query, dir]) => {
-    GmailApp.search(query, 0, 100).forEach((th) => {
+    GmailApp.search(query, 0, 60).forEach((th) => { try {
       let relevant = false;
       th.getMessages().forEach((m) => {
         const id = m.getId();
@@ -74,16 +85,20 @@ function runFeed() {
         relevant = true;
         if (have.has(id)) return;
         let kind = mine ? 'שלחת' : 'אחר';
-        if (!mine) for (const [k, re] of RULES) if (re.test(text)) { kind = k; break; }
+        if (!mine) {
+          for (const [k, re] of RULES) if (re.test(subject)) { kind = k; break; }       // the subject decides first
+          if (kind === 'אחר') for (const [k, re] of RULES) if (re.test(text)) { kind = k; break; }
+          if (kind === 'ראיון' && RULES[4][1].test(text) && !/schedule|availability|invite|זימון|לתאם|מתי נוח/i.test(text)) kind = 'אישור הגשה';
+        }
         const dom = (from.match(/@([^>\s]+)/) || [])[1] || '';
         rows.push([id, th.getId(), Utilities.formatDate(m.getDate(), 'Asia/Jerusalem', 'yyyy-MM-dd HH:mm'), kind,
           mine ? companyFrom_((m.getTo().match(/@[^>\s,]+/) || [''])[0], subject) : companyFrom_(from, subject),
           mine ? ((m.getTo().match(/@([^>\s,]+)/) || [])[1] || '') : dom, STRIP_PHONES(subject).slice(0, 200),
-          'https://mail.google.com/mail/u/0/#all/' + th.getId(), dir]);
+          'https://mail.google.com/mail/u/0/#all/' + th.getId(), mine ? 'יוצא' : 'נכנס']);
         have.add(id);
       });
       if (relevant) th.addLabel(label);
-    });
+    } catch (e) { console.warn('thread skipped', e); } });
   });
   if (rows.length) mails.getRange(mails.getLastRow() + 1, 1, rows.length, rows[0].length).setValues(rows);
 
@@ -91,13 +106,20 @@ function runFeed() {
   const jobs = sheet_('משרות', ['job_id', 'seen', 'title', 'company', 'location', 'fit', 'link', 'mail_link']);
   const haveJobs = seen_(jobs, 1);
   const jrows = [];
-  GmailApp.search(`newer_than:${LOOKBACK} in:anywhere from:(jobalerts-noreply@linkedin.com OR jobs-noreply@linkedin.com)`, 0, 30).forEach((th) => {
+  GmailApp.search(`newer_than:${lookback} in:anywhere from:(jobalerts-noreply@linkedin.com OR jobs-noreply@linkedin.com)`, 0, 30).forEach((th) => {
     th.getMessages().forEach((m) => {
       const lines = m.getPlainBody().split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
       lines.forEach((l, i) => {
         const mm = l.match(/linkedin\.com\/(?:comm\/)?jobs\/view\/(\d+)/);
-        if (!mm || haveJobs.has(mm[1]) || i < 3) return;
-        const title = lines[i - 3], company = lines[i - 2], location = lines[i - 1];
+        if (!mm || haveJobs.has(mm[1])) return;
+        const NOISE = /actively hiring|connection|apply with|easy apply|promoted|alumni|early applicant|applicant|reposted|ago$|school|verified|resume|benefit|^\$|₪|\bk\b|view job|^https?:|^-+$|top job|recruiting|hiring/i;
+        const ctx = [];
+        for (let k = i - 1; k >= 0 && ctx.length < 3; k--) {
+          if (/linkedin\.com\/(?:comm\/)?jobs\/view/.test(lines[k])) break;
+          if (!NOISE.test(lines[k])) ctx.unshift(lines[k]);
+        }
+        if (ctx.length < 3) return;
+        const [title, company, location] = ctx;
         if (/view job|linkedin|^http/i.test(title + company)) return;
         const t = (title || '').toLowerCase();
         if (/senior|staff|principal|lead|manager|director|architect|\bsr\b|phd/.test(t)) return;
@@ -113,6 +135,5 @@ function runFeed() {
   if (jrows.length) jobs.getRange(jobs.getLastRow() + 1, 1, jrows.length, jrows[0].length).setValues(jrows);
 
   // 3) status
-  const st = sheet_('סטטוס', ['last_run', 'new_mails', 'new_jobs', 'seconds']);
-  st.getRange(2, 1, 1, 4).setValues([[Utilities.formatDate(started, 'Asia/Jerusalem', 'yyyy-MM-dd HH:mm'), rows.length, jrows.length, Math.round((new Date() - started) / 1000)]]);
+  st.getRange(2, 1, 1, 5).setValues([[Utilities.formatDate(started, 'Asia/Jerusalem', 'yyyy-MM-dd HH:mm'), rows.length, jrows.length, Math.round((new Date() - started) / 1000), '']]);
 }
