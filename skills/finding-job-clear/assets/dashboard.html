@@ -84,29 +84,16 @@
 
   <section class="jt-grid" id="todo">
     <div class="jt-card" id="followup-card">
-      <h2 class="jt-h">שווה לשלוח פולואפ</h2>
-      <p class="jt-note">הגשות פתוחות שעברו 10 ימים בלי תזוזה. ״טיוטה מוכנה״ פותח טיוטה ב-Gmail שאתה עובר עליה ושולח בעצמך</p>
+      <h2 class="jt-h">פולואפ ופנייה ישירה</h2>
+      <p class="jt-note">הגשות פתוחות שעברו 10 ימים בלי תזוזה, וחברות שאפשר לפנות אליהן ישירות. איפה שיש כתובת — ״ליצור טיוטה״ מכין טיוטת פולואפ ב-Gmail שאתה עובר עליה ושולח בעצמך</p>
       <div class="jt-tablewrap jt-short">
         <table class="jt-table jt-followups" data-source="applications" data-row-key="id">
           <thead><tr>
             <th data-field="company">חברה</th>
             <th data-field="role">משרה</th>
-            <th data-field="followup_after">לשלוח מ-</th>
-            <th data-field="next_step">מה לעשות</th>
-          </tr></thead>
-          <tbody></tbody>
-        </table>
-      </div>
-    </div>
-    <div class="jt-card" id="direct-card">
-      <h2 class="jt-h">אפשר לפנות ישירות</h2>
-      <p class="jt-note">חברות שבמייל החוזר הזמינו אותך לפנות אליהן ישירות. לחיצה על הכתובת פותחת מייל חדש ב-Gmail</p>
-      <div class="jt-tablewrap jt-short">
-        <table class="jt-table jt-direct" data-source="applications" data-row-key="id">
-          <thead><tr>
-            <th data-field="company">חברה</th>
+            <th data-field="followup_after">מתי</th>
             <th data-field="direct_contact">לאן לפנות</th>
-            <th data-field="direct_contact_note">מה ביקשו</th>
+            <th data-field="next_step">פולואפ</th>
           </tr></thead>
           <tbody></tbody>
         </table>
@@ -1011,54 +998,91 @@
 
     const fu = document.querySelector('.jt-followups');
     const fuBody = fu.querySelector('tbody');
+    const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+    const fuMade = {};            // id -> viewUrl of a draft made in this session
+    let fuRT = null;
+    const fuRuntime = async () => fuRT || (fuRT = Promise.all(['db', 'mcp', 'assets'].map((n) => window.claude?.use?.(n).catch(() => null))).then(([db, mcp, assets]) => ({ db, mcp, assets })));
+    const isHeb = (r) => r.origin === 'ישראלית' || /[\u0590-\u05ff]/.test(r.company || '');
+    const fuDraft = (r) => {
+      const d = r.applied ? r.applied.split('-') : null;
+      const role = r.role && !/לא צוין/.test(r.role) ? r.role : '';
+      const fmt = String(r.direct_contact_note || '').split(/(?:בפורמט|format)\s*:/i)[1];
+      if (fmt && isHeb(r)) {   // the company asked for a specific structure — follow it, with blanks for what only you know
+        const items = fmt.split(/;/).map((x) => x.trim()).filter(Boolean);
+        const lines = items.map((x) => /שם מלא/.test(x) ? `${x}: {{USER_NAME}}, ${role}${r.job_id ? ', משרה ' + r.job_id : ''}` : /3 סיבות|סיבות/.test(x) ? `${x}:\n1. [ ]\n2. [ ]\n3. [ ]` : `${x}: [ ]`);
+        return { subject: `${role || 'מועמדות'}${r.job_id ? ' (' + r.job_id + ')' : ''} – {{USER_NAME}}`, body: `שלום,\n\nלפי מה שביקשתם, הפרטים שלי:\n\n${lines.join('\n\n')}\n\nתודה,\n{{USER_NAME}}` };
+      }
+      if (isHeb(r)) {
+        return { subject: `פולואפ: ${role || 'מועמדות'} – {{USER_NAME}}`, body: `שלום,\n\nהגשתי מועמדות${role ? ' למשרת ' + role : ''}${r.job_id ? ' (משרה ' + r.job_id + ')' : ''}${d ? ' ב-' + d[2] + '.' + d[1] + '.' + d[0] : ''} ורציתי לבדוק אם יש עדכון.\n[משפט אחד משלך: למה דווקא ${r.company}]\n{{FOLLOWUP_LINE_HE}}, ואשמח לשלוח פרטים נוספים או לתאם שיחה קצרה.\n\nתודה,\n{{USER_NAME}}` };
+      }
+      const M = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+      return { subject: `Follow-up: ${role || 'my application'} – {{USER_NAME_EN}}`, body: `Hi,\n\nI applied for ${role ? 'the ' + role + ' position' : 'a position at ' + r.company}${r.job_id ? ' (job ' + r.job_id + ')' : ''}${d ? ' on ' + M[+d[1] - 1] + ' ' + (+d[2]) : ''} and wanted to check whether there is any update.\n[One line of your own: why ${r.company} specifically]\n{{FOLLOWUP_LINE_EN}}, and I'd be glad to send more details or set up a short call.\n\nThanks,\n{{USER_NAME_EN}}` };
+    };
+    async function fuSaveDraftUrl(id, url) {
+      const { db, assets } = await fuRuntime();
+      if (!db || !assets) return false;
+      const snap = await db.doc('datasets/applications').get(); const doc = snap.data();
+      const res = await fetch(doc.source.url); const json = await res.json(); const rows = Array.isArray(json) ? json : (json.rows || json.data || []);
+      const row = rows.find((x) => x.id === id); if (!row) return false;
+      const t = new Date(); const today = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
+      Object.assign(row, { followup_draft: url, next_step: 'טיוטת פולואפ מוכנה ב-Gmail — לעבור ולשלוח', last_update: today });
+      const up = await assets.upload(new Blob([JSON.stringify(rows)], { type: 'application/json' }));
+      await db.doc('datasets/applications').update({ source: { kind: 'file', url: '/_blob/' + up.id, name: doc.source.name || 'applications.json' }, updated: { at: new Date().toISOString(), by: 'הדשבורד (טיוטת פולואפ באישור המשתמש)' } });
+      return true;
+    }
+    const fuAction = (td, r) => {
+      const url = r.followup_draft || fuMade[r.id];
+      if (url) { const a = document.createElement('a'); a.href = url; a.target = '_blank'; a.rel = 'noopener noreferrer'; a.className = 'jt-mail jt-draft'; a.textContent = 'טיוטה מוכנה — לפתוח ב-Gmail'; td.appendChild(a); return; }
+      if (!EMAIL_RE.test(r.direct_contact || '')) { td.textContent = r.next_step || 'ממתינים לתשובה'; td.classList.add('jt-muted'); return; }
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'jt-apply'; b.textContent = 'ליצור טיוטה';
+      const st = document.createElement('div'); st.className = 'jt-note';
+      b.addEventListener('click', async () => {
+        if (b.disabled) return; b.disabled = true; b.textContent = 'יוצר טיוטה…'; st.textContent = '';
+        try {
+          const { mcp } = await fuRuntime(); if (!mcp) throw new Error('no-mcp');
+          const m = fuDraft(r);
+          const out = await mcp.callTool('Gmail', 'create_draft', { to: [r.direct_contact], subject: m.subject, body: m.body }, { cache: false });
+          const p = out?.payload || out?.structuredContent || out || {};
+          const url = p.viewUrl || p.draft?.viewUrl || 'https://mail.google.com/mail/#drafts';
+          fuMade[r.id] = url;
+          let saved = false; try { saved = await fuSaveDraftUrl(r.id, url); } catch (e) { console.warn('save draft url', e); }
+          td.replaceChildren(); fuAction(td, r);
+          const n = document.createElement('div'); n.className = 'jt-note'; n.textContent = saved ? 'נשמרה ב-Gmail (לא נשלחה). תשלים את המשפט בסוגריים ותשלח.' : 'נשמרה ב-Gmail (לא נשלחה). תשלים את המשפט בסוגריים ותשלח.'; td.appendChild(n);
+        } catch (e) {
+          const c = e?.code; b.disabled = false; b.textContent = 'ליצור טיוטה';
+          st.textContent = (c === 'server_not_connected' || c === 'not_granted' || c === 'needs_reauth' || c === 'consent_required') ? 'צריך לאשר גישה ל-Gmail ולנסות שוב.' : 'לא הצלחתי ליצור טיוטה. אפשר לנסות שוב.';
+        }
+      });
+      td.append(b, st);
+    };
     dash.onData(() => {
       const d = dash.data('applications');
       fuBody.replaceChildren();
       if (d.status !== 'ok') {
-        const tr = document.createElement('tr'); const td = document.createElement('td'); td.colSpan = 4;
+        const tr = document.createElement('tr'); const td = document.createElement('td'); td.colSpan = 5;
         if (d.status === 'error') { const f = document.createElement('div'); f.className = 'jt-fail'; f.textContent = 'הטעינה נכשלה'; td.appendChild(f); } else td.className = 'dash-skeleton';
         tr.appendChild(td); fuBody.appendChild(tr); return;
       }
       const t = new Date();
       const today = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
-      const rows = (d.data || []).filter((r) => r.followup_after && r.followup_after <= today && (r.status === 'הוגש' || r.status === 'בתהליך'))
-        .sort((a, b) => (b.followup_draft ? 1 : 0) - (a.followup_draft ? 1 : 0) || String(a.followup_after).localeCompare(String(b.followup_after)));
-      if (!rows.length) { const tr = document.createElement('tr'); const td = document.createElement('td'); td.colSpan = 4; td.className = 'jt-empty'; td.textContent = 'אין כרגע הגשות שמחכות לפולואפ'; tr.appendChild(td); fuBody.appendChild(tr); return; }
+      const open = (r) => r.status === 'הוגש' || r.status === 'בתהליך' || r.status === 'ראיון';
+      const rows = (d.data || []).filter((r) => r.relevant !== false && open(r) && ((r.followup_after && r.followup_after <= today) || r.direct_contact))
+        .sort((a, b) => (b.followup_draft ? 2 : EMAIL_RE.test(b.direct_contact || '') ? 1 : 0) - (a.followup_draft ? 2 : EMAIL_RE.test(a.direct_contact || '') ? 1 : 0) || String(a.followup_after || '9').localeCompare(String(b.followup_after || '9')));
+      if (!rows.length) { const tr = document.createElement('tr'); const td = document.createElement('td'); td.colSpan = 5; td.className = 'jt-empty'; td.textContent = 'אין כרגע הגשות שמחכות לפולואפ או לפנייה ישירה'; tr.appendChild(td); fuBody.appendChild(tr); return; }
       rows.forEach((r) => {
         const tr = document.createElement('tr'); tr.dataset.key = r.id;
         linkCell(tr, r.company, r.link, r.thread_id).className = 'jt-company';
-        cell(tr, r.role);
-        cell(tr, fmtDate(r.followup_after), 'jt-date');
-        const td = linkCell(tr, r.next_step, r.followup_draft);
-        if (r.followup_draft) td.classList.add('jt-draft');
+        cell(tr, r.role, 'jt-role');
+        cell(tr, r.followup_after ? (r.followup_after <= today ? 'עכשיו' : fmtDate(r.followup_after)) : 'עכשיו', 'jt-date');
+        const to = document.createElement('td');
+        if (EMAIL_RE.test(r.direct_contact || '')) {
+          const a = document.createElement('a'); a.href = window.JT.composeHref(r.direct_contact); a.target = '_blank'; a.rel = 'noopener noreferrer'; a.className = 'jt-mail'; a.textContent = r.direct_contact; a.dir = 'ltr'; to.appendChild(a);
+          if (r.direct_contact_note) { const n = document.createElement('div'); n.className = 'jt-note'; n.textContent = r.direct_contact_note; to.appendChild(n); }
+        } else { to.textContent = r.direct_contact || '—'; to.classList.add('jt-muted'); }
+        tr.appendChild(to);
+        const act = document.createElement('td'); tr.appendChild(act); fuAction(act, r);
+        if (r.followup_draft || EMAIL_RE.test(r.direct_contact || '')) tr.className = 'jt-needs';
         fuBody.appendChild(tr);
-      });
-    });
-
-    const dr = document.querySelector('.jt-direct');
-    const drBody = dr.querySelector('tbody');
-    dash.onData(() => {
-      const d = dash.data('applications');
-      drBody.replaceChildren();
-      if (d.status !== 'ok') {
-        const tr = document.createElement('tr'); const td = document.createElement('td'); td.colSpan = 3;
-        if (d.status === 'error') { const f = document.createElement('div'); f.className = 'jt-fail'; f.textContent = 'הטעינה נכשלה'; td.appendChild(f); } else td.className = 'dash-skeleton';
-        tr.appendChild(td); drBody.appendChild(tr); return;
-      }
-      const rows = (d.data || []).filter((r) => r.direct_contact).sort((a, b) => String(b.last_update).localeCompare(String(a.last_update)));
-      if (!rows.length) { const tr = document.createElement('tr'); const td = document.createElement('td'); td.colSpan = 3; td.className = 'jt-empty'; td.textContent = 'אין כרגע חברות שהזמינו פנייה ישירה'; tr.appendChild(td); drBody.appendChild(tr); return; }
-      rows.forEach((r) => {
-        const tr = document.createElement('tr'); tr.dataset.key = r.id;
-        linkCell(tr, r.company, r.link, r.thread_id).className = 'jt-company';
-        const td = document.createElement('td');
-        if (/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(r.direct_contact)) {
-          const a = document.createElement('a');
-          a.href = window.JT.composeHref(r.direct_contact);
-          a.target = '_blank'; a.rel = 'noopener noreferrer'; a.className = 'jt-mail jt-draft'; a.textContent = r.direct_contact; td.appendChild(a);
-        } else td.textContent = r.direct_contact;
-        tr.appendChild(td);
-        cell(tr, r.direct_contact_note);
-        drBody.appendChild(tr);
       });
     });
 
