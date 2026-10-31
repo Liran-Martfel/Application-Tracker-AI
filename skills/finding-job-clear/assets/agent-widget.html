@@ -16,7 +16,13 @@
   width: min(410px, calc(100vw - 24px)); height: min(640px, calc(100vh - 120px)); display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto; overflow: hidden;
   background: var(--ja-panel); -webkit-backdrop-filter: blur(24px) saturate(160%); backdrop-filter: blur(24px) saturate(160%); border: 1px solid var(--ja-hair); border-radius: 22px; box-shadow: var(--ja-shadow);
   transform-origin: bottom right; animation: ja-in .22s cubic-bezier(.22,1,.36,1); }
-@media (max-width: 480px) { .ja-panel { right: 12px; left: 12px; width: auto; bottom: 92px; height: calc(100vh - 130px); } }
+@media (max-width: 600px) {
+  /* phone: the panel takes the whole visible screen and follows the keyboard (height set from visualViewport) */
+  .ja-panel { left: 0; right: 0; top: var(--ja-top, 0px); bottom: auto; width: 100%; height: var(--ja-h, 100dvh); border-radius: 0; border: 0; padding-top: env(safe-area-inset-top, 0px); }
+  .ja.is-open .ja-fab { display: none; }
+  .ja-foot { padding-bottom: max(10px, env(safe-area-inset-bottom, 0px)); }
+  .ja textarea, .ja select, .ja input[type="text"] { font-size: 16px; } /* no auto-zoom on iOS */
+}
 @keyframes ja-in { from { opacity: 0; transform: translateY(10px) scale(.97); } }
 @media (prefers-reduced-motion: reduce) { .ja-panel { animation: none; } .ja-fab { transition: none; } }
 .ja-head { display: flex; align-items: center; gap: 10px; padding: 14px 16px 10px; border-bottom: 1px solid var(--ja-hair); }
@@ -72,7 +78,7 @@
 <script>
 (() => {
   if (window.__jobAgent) return; window.__jobAgent = true;
-  const SERVERS = ['host:jobs-agent', 'host:jobs_agent'];
+  const SERVER = 'host:jobs-agent';
   const FAST = 'qwen2.5:3b', SMART = 'qwen2.5:7b';
   const STATUSES = ['הוגש','בתהליך','ראיון','הצעה','נדחה'], OPEN = ['הוגש','בתהליך','ראיון','הצעה'];
   const KINDS = ['הגשה','פנייה','תגובה','התקדמות','ראיון','הצעה','דחייה'];
@@ -84,7 +90,8 @@
   const el = (tag, attrs = {}, ...kids) => { const e = document.createElement(tag); for (const [k, v] of Object.entries(attrs)) { if (k === 'class') e.className = v; else if (k === 'text') e.textContent = v; else if (k === 'html') e.innerHTML = v; else e.setAttribute(k, v); } kids.flat().forEach(k => k != null && e.append(k)); return e; };
   const errText = (e) => String(e?.message || e?.result?.content?.[0]?.text || e?.code || e || '');
 
-  let db = null, mcp = null, assets = null, SERVER = SERVERS[0];
+  let db = null, mcp = null, assets = null, sample = null, hostSeen = null;
+  let engine = store.get('ja.engine', 'auto');   // auto | local | cloud
   let data = { applications: [], events: [], prep: [], job_leads: [] }, loadedAt = 0;
   let cv = null, prefs = [], installed = [], pulling = [];
   let history = store.get('ja.history', []).slice(-20);
@@ -170,28 +177,36 @@
     const t = errText(e);
     if (/PULLING/.test(t)) return t.replace(/^.*PULLING:\s*/, '');
     if (/OLLAMA_DOWN|fetch failed/.test(t)) return 'לא הצלחתי להפעיל את Ollama במחשב. צריך לפתוח אותו פעם אחת ידנית.';
-    if (e?.code === 'server_not_connected' || e?.code === 'server_not_found' || e?.code === 'not_in_manifest') return 'הסוכן עובד רק כשהדשבורד פתוח באפליקציית Claude במחשב שלך, עם התוסף jobs-agent.';
-    if (e?.code === 'not_granted') return 'לא אושרה גישה לתוסף jobs-agent. אפשר לאשר דרך תפריט ההרשאות של הדשבורד.';
+    const c = e?.code;
+    if (c === 'server_not_connected' || c === 'server_not_found' || c === 'not_in_manifest') return 'Ollama זמין רק כשהדשבורד פתוח באפליקציית Claude במחשב, עם התוסף jobs-agent.';
+    if (c === 'not_granted' || c === 'capability_disabled') return 'לא אושרה גישה לתוסף jobs-agent.';
+    if (c === 'cancelled' || c === 'approval_required') return 'הבקשה לתוסף לא אושרה. בפעם הבאה כדאי לבחור "תמיד לאפשר".';
+    if (c === 'server_unavailable' || /did not reply in time|timed? ?out/i.test(t)) return 'Ollama לא ענה בזמן.';
     if (/right after you act|activation/i.test(t)) return 'צריך ללחוץ בתוך הדשבורד ואז לנסות שוב.';
+    if (c && c !== 'tool_error') return 'Ollama לא זמין כרגע.';
     return t || 'משהו נכשל';
   }
+  const RECOVERABLE = (e) => e?.code === 'upstream_error' && e?.retryable;
   async function connect() {
-    if (!mcp) { setStatus('off', 'זמין רק באפליקציית Claude במחשב'); return false; }
-    setStatus('wait', 'מתחבר…');
-    let last = null;
-    for (const s of SERVERS) {
+    if (!mcp || hostSeen === false) { setStatus(sample ? 'on' : 'off', sample ? 'Claude (ענן) · Ollama לא זמין כאן' : 'זמין רק באפליקציית Claude במחשב'); return false; }
+    setStatus('wait', 'מתחבר ל-Ollama…');
+    for (let i = 0; i < 2; i++) {
       try {
-        SERVER = s;
         const p = await ocall('ollama_models', { ensure: [FAST, SMART] });
         installed = (p.models || []).map(m => m.name); pulling = p.pulling || [];
         const dl = pulling.filter(x => !x.error);
         setStatus(installed.length ? 'on' : 'wait', dl.length ? `מוריד ${dl.map(x => x.model + ' ' + x.percent + '%').join(', ')} (פעם אחת)` : 'Ollama במחשב שלך · מוכן');
         return installed.length > 0;
-      } catch (e) { last = e; if (e?.code === 'tool_error') break; }
+      } catch (e) {
+        if (i === 0 && RECOVERABLE(e)) { await sleep(Math.min(e.retryAfterMs || 1500, 3000)); continue; }
+        connErr = e;
+        setStatus(sample ? 'on' : 'off', sample ? 'Claude (ענן) · ' + friendly(e) : friendly(e));
+        return false;
+      }
     }
-    setStatus('off', friendly(last).slice(0, 80));
     return false;
   }
+  let connErr = null;
   function pickModel(text) {
     const heavy = mode === 'practice' || text.length > 140 || /מייל|תנסח|לנסח|השווה|השוואה|קורות|התאמ|למה|תסביר|ניתוח|מכתב|תכין/.test(text);
     const want = heavy ? SMART : FAST;
@@ -200,19 +215,23 @@
     if (installed.includes(other)) return other;
     return installed.find(m => /qwen|llama3\.[1-9]|gemma|mistral/i.test(m)) || installed[0] || SMART;
   }
-  let pendingRead = null;
-  document.addEventListener('pointerdown', () => pendingRead && pendingRead(), true);
-  document.addEventListener('keydown', () => pendingRead && pendingRead(), true);
+  let pendingRead = null, reading = false;
+  const readNow = async () => { if (!pendingRead || reading) return; reading = true; try { await pendingRead(); } finally { reading = false; } };
+  document.addEventListener('pointerdown', readNow, true);
+  document.addEventListener('keydown', readNow, true);
+  const NEEDS_CLICK = (e) => /right after you act|activation|did not reply in time/i.test(errText(e)) || e?.code === 'server_unavailable' || RECOVERABLE(e);
   async function run(model, messages, opts, ui) {
     let job;
     try { job = (await ocall('ollama_chat_start', { model, messages, temperature: 0.3, num_ctx: 8192, ...opts })).job_id; }
-    catch (e) { throw { message: friendly(e) }; }
+    catch (e) { throw { message: friendly(e), code: e?.code || 'start_failed', local: true }; }
+    const t0 = Date.now();
     for (;;) {
       await sleep(1000);
       let p;
       try { p = await ocall('ollama_chat_poll', { job_id: job }); }
       catch (e) {
-        if (/UNKNOWN_JOB/.test(errText(e))) throw { message: 'התשובה אבדה. נסה שוב.' };
+        if (/UNKNOWN_JOB/.test(errText(e))) throw { message: 'התשובה אבדה. נסה שוב.', local: true };
+        if (!NEEDS_CLICK(e)) throw { message: friendly(e), code: e?.code, local: true };
         ui.status('עוד רגע… התשובה תופיע בלחיצה הבאה שלך בדשבורד.');
         p = await new Promise((resolve, reject) => {
           pendingRead = async () => {
@@ -222,9 +241,45 @@
         });
       }
       if (p.text && !opts?.format) ui.text(p.text);
-      if (p.done) { if (p.error) throw { message: friendly({ message: p.error }) }; return p; }
+      if (p.done) { if (p.error || !String(p.text || '').trim()) throw { message: friendly({ message: p.error || 'לא התקבלה תשובה מ-Ollama.' }), local: true }; return p; }
+      if (Date.now() - t0 > 120000) { ocall('ollama_chat_cancel', { job_id: job }).catch(() => {}); throw { message: 'Ollama לא סיים תוך 2 דקות.', local: true }; }
       ui.status(`כותב… ${Math.round(p.seconds || 0)} שנ׳`);
     }
+  }
+
+  // ---------- Claude (cloud) engine: used when Ollama isn't reachable ----------
+  async function cloud(sys, turns, heavy, json, ui) {
+    if (!sample) throw { message: 'Claude לא זמין בדשבורד הזה.' };
+    const msgs = [{ role: 'user', content: sys }, { role: 'assistant', content: 'הבנתי.' }];
+    turns.forEach(t => { const r = t.role === 'assistant' ? 'assistant' : 'user'; if (msgs.at(-1).role === r) msgs.at(-1).content += '\n\n' + t.content; else msgs.push({ role: r, content: String(t.content || '…') }); });
+    if (msgs.at(-1).role !== 'user') msgs.push({ role: 'user', content: 'המשך.' });
+    const opt = { modelTier: heavy ? 'default' : 'quick', cache: false };
+    const t0 = Date.now();
+    ui?.status('Claude עונה…');
+    try {
+      if (json) { try { const j = await sample.json(msgs, opt); return { j, text: JSON.stringify(j), seconds: (Date.now() - t0) / 1000 }; } catch (e) { if (e?.code === 'invalid_json' && e.text) return { j: null, text: e.text, seconds: (Date.now() - t0) / 1000 }; throw e; } }
+      const r = await sample(msgs, { ...opt, onText: (u) => ui?.text(u.text) });
+      return { j: null, text: r.text, seconds: (Date.now() - t0) / 1000 };
+    } catch (e) {
+      const c = e?.code;
+      throw { message: c === 'rate_limited' ? 'נגמר כרגע השימוש ב-Claude. Ollama יענה כשהדשבורד פתוח באפליקציה במחשב.' : (c === 'not_granted' || c === 'sampling_disabled' || c === 'capability_disabled') ? 'לא אושר שימוש ב-Claude בדשבורד.' : 'Claude לא הצליח לענות כרגע. נסה שוב.' };
+    }
+  }
+  // Pick the engine for one answer: Ollama first (free, local); Claude if Ollama can't be reached.
+  async function answer(sys, turns, heavy, json, ui) {
+    const tryLocal = engine !== 'cloud' && mcp && hostSeen !== false;
+    let localErr = null;
+    if (tryLocal) {
+      try {
+        if (!installed.length && !(await connect())) throw connErr || { message: sub.textContent };
+        const model = pickModel(heavy ? 'תנסח' : '');
+        ui.status(model === FAST ? 'עונה במודל המהיר…' : 'עונה במודל החכם…');
+        const p = await run(model, [{ role: 'system', content: sys }, ...turns], json ? { format: 'json' } : { temperature: 0.5 }, ui);
+        return { text: p.text, j: json ? extractJSON(p.text) : null, meta: `${model === FAST ? 'מהיר' : 'חכם'} · ${model} · ${Number(p.seconds || 0).toFixed(0)} שנ׳` };
+      } catch (e) { localErr = e; if (engine === 'local' || !sample) throw { message: e?.message || friendly(e) }; }
+    }
+    const r = await cloud(sys, turns, heavy, json, ui);
+    return { text: r.text, j: r.j, meta: `Claude · ${Math.round(r.seconds)} שנ׳${localErr ? ' · ' + (localErr.message || 'Ollama לא זמין') : ''}` };
   }
 
   // ---------- prompts ----------
@@ -386,7 +441,7 @@ ${he ? 'כללים: עברית. שאלה אחת בכל פעם ומחכים. אח
     file.addEventListener('change', async () => {
       const f = file.files?.[0]; file.value = ''; if (!f) return; cvStat.textContent = 'קורא את הקובץ…';
       try { const t = (await fileToText(f)).replace(/\n{3,}/g, '\n\n').trim(); if (t.length < 80) { cvStat.textContent = 'לא הצלחתי לקרוא טקסט (אולי PDF סרוק).'; return; } await db.doc('agent/cv').set({ text: t.slice(0, 20000), filename: f.name, updated_at: new Date().toISOString() }); cv = { text: t, filename: f.name }; renderSettings(); }
-      catch (e) { cvStat.textContent = 'נכשל: ' + errText(e); }
+      catch (e) { cvStat.textContent = 'השמירה נכשלה (' + (e?.code || errText(e)).toString().slice(0, 60) + '). אפשר לנסות שוב, או לשלוח את הקובץ ל-Claude בצ\'אט.'; }
     });
     const ul = el('ul', { class: 'ja-mem' });
     if (!prefs.length) ul.append(el('li', {}, el('span', { class: 'ja-hint', text: 'עוד לא נשמר כלום. כותבים בשיחה "תזכור ש…".' })));
@@ -395,9 +450,12 @@ ${he ? 'כללים: עברית. שאלה אחת בכל פעם ומחכים. אח
     const memAdd = el('button', { class: 'ja-btn sec', type: 'button', text: 'הוספה' });
     memAdd.addEventListener('click', async () => { if (await addPref(memIn.value)) memIn.value = ''; });
     const models = el('p', { class: 'ja-hint', text: `המודל נבחר לבד: ${FAST} לשאלות קצרות (מהיר), ${SMART} למיילים, השוואות ותרגול. מותקנים: ${installed.join(', ') || 'לא ידוע עדיין'}.` });
+    const eng = el('select', { 'aria-label': 'מי עונה' }, el('option', { value: 'auto', text: 'אוטומטי: Ollama, ואם לא זמין – Claude' }), el('option', { value: 'local', text: 'רק Ollama (בלי שימוש ב-Claude)' }), el('option', { value: 'cloud', text: 'רק Claude' }));
+    eng.value = engine; eng.addEventListener('change', () => { engine = eng.value; store.set('ja.engine', engine); if (engine !== 'cloud') connect(); else setStatus(sample ? 'on' : 'off', sample ? 'Claude (ענן)' : 'לא זמין'); });
     const back = el('button', { class: 'ja-btn sec', type: 'button', text: 'חזרה לשיחה' }); back.addEventListener('click', () => showSettings(false));
     settings.append(el('div', {}, el('h4', { text: 'קורות חיים' }), cvStat, el('div', { class: 'ja-row' }, pick, file)),
       el('div', {}, el('h4', { text: 'מה הסוכן זוכר עליך' }), ul, el('div', { class: 'ja-row', style: 'margin-top:6px' }, memIn, memAdd)),
+      el('div', {}, el('h4', { text: 'מי עונה' }), eng, el('p', { class: 'ja-hint', text: 'Ollama רץ במחשב שלך ולא עולה כלום. Claude עובד גם בטלפון ובדפדפן, אבל משתמש במכסה שלך ב-Claude.' })),
       el('div', {}, el('h4', { text: 'מודלים' }), models), back);
   }
   function showSettings(on) { settings.hidden = !on; body.hidden = on; foot.hidden = on; tabs.hidden = on; if (on) renderSettings(); }
@@ -416,12 +474,10 @@ ${he ? 'כללים: עברית. שאלה אחת בכל פעם ומחכים. אח
   async function practiceTurn(text) {
     const ui = beginAI();
     try {
-      if (!installed.length && !(await connect())) throw { message: sub.textContent };
       practice.msgs.push({ role: 'user', content: text });
-      const model = pickModel(text);
-      const p = await run(model, [{ role: 'system', content: practiceSystem(practice.job, practice.lang) }, ...practice.msgs], { temperature: 0.5 }, ui);
-      practice.msgs.push({ role: 'assistant', content: p.text });
-      ui.done(p.text, `${model} · ${Number(p.seconds || 0).toFixed(0)} שנ׳`);
+      const r = await answer(practiceSystem(practice.job, practice.lang), practice.msgs, true, false, ui);
+      practice.msgs.push({ role: 'assistant', content: r.text });
+      ui.done(r.text, r.meta);
     } catch (e) { practice.msgs.pop(); ui.fail(errText(e)); }
   }
   pStart.addEventListener('click', () => { if (!pSel.value) return; practice = { job: JSON.parse(pSel.value), lang: pLang.value, msgs: [] }; pEnd.disabled = false; addMsg('me', `▶ תרגול ראיון: ${practice.job.company} – ${practice.job.role}`); practiceTurn(practice.lang === 'he' ? 'בוא נתחיל. תציג את עצמך בקצרה ותשאל את השאלה הראשונה.' : "Let's start. Introduce yourself briefly and ask the first question."); });
@@ -431,20 +487,19 @@ ${he ? 'כללים: עברית. שאלה אחת בכל פעם ומחכים. אח
   async function ask(text) {
     const ui = beginAI();
     try {
-      if (!installed.length && !(await connect())) throw { message: sub.textContent };
-      await loadData();
-      const model = pickModel(text);
-      ui.status(model === FAST ? 'עונה במודל המהיר…' : 'עונה במודל החכם…');
+      if (!loadedAt) await loadData(); else loadData();
       const base = history.slice(-4).map(h => h.role === 'user' ? { role: 'user', content: h.text } : { role: 'assistant', content: JSON.stringify({ reply: h.text }) });
-      const p = await run(model, [{ role: 'system', content: system(text) }, ...base, { role: 'user', content: text }], { format: 'json' }, ui);
-      const j = extractJSON(p.text);
+      const heavy = text.length > 140 || /מייל|תנסח|לנסח|השווה|השוואה|קורות|התאמ|למה|תסביר|ניתוח|מכתב|תכין/.test(text);
+      const r = await answer(system(text), [...base, { role: 'user', content: text }], heavy, true, ui);
+      const j = r.j || extractJSON(r.text);
+      const p = { text: r.text };
       const reply = (j && typeof j.reply === 'string' && j.reply.trim()) ? j.reply.trim() : (p.text || '').trim();
       const cards = [];
       if (/(התקשר|דיברתי|שיחה|קבענו|זימנו|הזמינו|ראיון|דחו|דחייה|לא התקבלתי|הצעה|הגשתי|שלחתי|עדכן|תעדכן|תוסיף|תסמן|תמחק|לא רלוונטי|נסגרה)/.test(text))
         (Array.isArray(j?.actions) ? j.actions : []).map(validate).filter(Boolean).slice(0, 4).forEach(a => cards.push(actionCard(a)));
       if (j?.email && (j.email.body || j.email.subject) && /מייל|אימייל|מכתב|לנסח|תנסח|טיוטה|פולואפ|email/i.test(text)) cards.push(emailCard(j.email));
       if (typeof j?.remember === 'string' && j.remember && /תזכור|זכור|תשמור/.test(text)) { await addPref(j.remember); cards.push(el('span', { class: 'ja-meta', text: 'נשמר בזיכרון: ' + j.remember })); }
-      ui.done(reply, `${model === FAST ? 'מהיר' : 'חכם'} · ${model} · ${Number(p.seconds || 0).toFixed(0)} שנ׳`, cards);
+      ui.done(reply, r.meta, cards);
       history.push({ role: 'user', text }, { role: 'assistant', text: reply }); history = history.slice(-20); store.set('ja.history', history);
     } catch (e) { ui.fail(errText(e)); }
   }
@@ -457,11 +512,10 @@ ${he ? 'כללים: עברית. שאלה אחת בכל פעם ומחכים. אח
   });
   q.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); form.requestSubmit(); } });
   q.addEventListener('input', () => { q.style.height = 'auto'; q.style.height = Math.min(q.scrollHeight, 120) + 'px'; });
-  let warmed = false;
-  q.addEventListener('focus', () => { if (warmed || !mcp || !installed.length) return; warmed = true; ocall('ollama_chat_start', { model: pickModel(''), messages: [], num_ctx: 8192 }).catch(() => { warmed = false; }); });
   audio.addEventListener('change', async () => {
-    const f = audio.files?.[0]; audio.value = ''; if (!f || !mcp) return;
-    if (f.size > 15 * 1024 * 1024) { addMsg('err', 'ההקלטה גדולה מדי (עד כ-10 דקות).'); return; }
+    const f = audio.files?.[0]; audio.value = ''; if (!f) return;
+    if (!mcp || hostSeen === false) { addMsg('err', 'תמלול עובד רק כשהדשבורד פתוח באפליקציית Claude במחשב.'); return; }
+    if (f.size > 700 * 1024) { addMsg('err', 'ההקלטה גדולה מדי לתמלול כאן (עד כ-700KB, בערך דקה-שתיים). אפשר לקצר אותה.'); return; }
     const w = addMsg('ai', `מתמלל את "${f.name}"… (בפעם הראשונה יורד מודל תמלול, זה לוקח כמה דקות)`);
     try {
       const b64 = await new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(',')[1]); r.onerror = rej; r.readAsDataURL(f); });
@@ -471,10 +525,22 @@ ${he ? 'כללים: עברית. שאלה אחת בכל פעם ומחכים. אח
   });
 
   // ---------- open / close ----------
+  const PHONE = () => matchMedia('(max-width: 600px)').matches;
+  function fitPhone() {
+    const vv = window.visualViewport;
+    if (!opened || !PHONE() || !vv) { panel.style.removeProperty('--ja-h'); panel.style.removeProperty('--ja-top'); return; }
+    panel.style.setProperty('--ja-h', Math.round(vv.height) + 'px');
+    panel.style.setProperty('--ja-top', Math.round(vv.offsetTop) + 'px');
+    body.scrollTop = body.scrollHeight;
+  }
+  window.visualViewport?.addEventListener('resize', fitPhone);
+  window.visualViewport?.addEventListener('scroll', fitPhone);
+  window.addEventListener('resize', fitPhone);
   function toggle(on) {
     opened = on ?? !opened; panel.hidden = !opened; fab.setAttribute('aria-expanded', String(opened));
     fab.innerHTML = opened ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>' : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20.5l1.4-4.6A8 8 0 1 1 21 12z"/><path d="M8.5 11h7M8.5 14h4.5"/></svg>';
-    if (opened) { q.focus({ preventScroll: true }); connect(); loadData(); }
+    root.classList.toggle('is-open', opened); fitPhone();
+    if (opened) { if (!PHONE()) q.focus({ preventScroll: true }); if (engine !== 'cloud') connect(); loadData(); }
   }
   fab.addEventListener('click', () => toggle());
   close.addEventListener('click', () => toggle(false));
@@ -486,12 +552,15 @@ ${he ? 'כללים: עברית. שאלה אחת בכל פעם ומחכים. אח
   welcome();
   (async () => {
     const C = window.claude; if (!C?.use) return;
-    [db, mcp, assets] = await Promise.all([C.use('db'), C.use('mcp'), C.use('assets')]);
+    [db, mcp, assets, sample] = await Promise.all(['db', 'mcp', 'assets', 'sample'].map(n => C.use(n).catch(() => null)));
+    if (mcp?.listTools) { try { const l = await mcp.listTools(SERVER); hostSeen = !!(l?.servers || []).some(x => x.server === SERVER); } catch { hostSeen = null; } }
     if (db) {
       try { const s = await db.doc('agent/cv').get(); if (s.exists) cv = s.data(); } catch {}
       try { const s = await db.doc('agent/prefs').get(); if (s.exists) prefs = s.data()?.items || []; } catch {}
     }
-    setStatus(mcp ? '' : 'off', mcp ? 'לוחצים כדי להתחבר' : 'זמין רק באפליקציית Claude במחשב');
+    if (engine === 'cloud' || (hostSeen === false && sample)) setStatus(sample ? 'on' : 'off', sample ? 'Claude (ענן)' + (hostSeen === false ? ' · Ollama לא זמין כאן' : '') : 'לא זמין');
+    else if (mcp) setStatus('', 'Ollama במחשב · מתחבר בפתיחה');
+    else setStatus(sample ? 'on' : 'off', sample ? 'Claude (ענן)' : 'זמין רק באפליקציית Claude');
   })();
 })();
 </script>
