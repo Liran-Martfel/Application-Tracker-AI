@@ -66,6 +66,22 @@
     </div>
   </section>
 
+  <section id="archive">
+    <details class="jt-insights jt-archive">
+    <summary class="jt-h jt-sec">ארכיון <span class="jt-arch-count"></span> <span class="jt-note">— שיחות שבהן כתבו שהמשרה לא מתאימה ואתה כבר ענית. לחיצה פותחת</span></summary>
+    <div class="jt-card">
+      <div class="jt-tablewrap jt-tall">
+        <table class="jt-table jt-arch">
+          <thead><tr>
+            <th>תאריך</th><th>חברה</th><th class="jt-hide-sm">משרה</th><th>סוג</th><th>מה כתבו</th><th>מצב</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+    </details>
+  </section>
+
   <section class="jt-grid" id="todo">
     <div class="jt-card" id="followup-card">
       <h2 class="jt-h">שווה לשלוח פולואפ</h2>
@@ -339,6 +355,10 @@
   .jt-channel { white-space: nowrap; color: var(--color-fg-muted); }
   .jt-insights > summary { cursor: pointer; list-style-position: inside; margin-bottom: var(--cds-gap-sm); }
   .jt-insights > summary .jt-note { font-weight: 400; }
+  .jt-arch-count { font-weight: 600; color: var(--color-fg-muted); }
+  .jt-arch { font-size: var(--cds-font-size-body); }
+  .jt-arch td { padding: var(--cds-pad-sm); }
+  .jt-arch td.jt-role { color: var(--color-fg-muted); max-width: 16rem; }
   .jt-k-reject { color: var(--color-bad); }
   .jt-k-progress { color: var(--color-ok); }
   .jt-empty { color: var(--color-fg-muted); padding: var(--cds-pad-md); text-align: center; }
@@ -1113,6 +1133,45 @@
         return (part && part.channel) || byCo.get(c) || '';
       };
     };
+    // ארכיון: שרשור שבו כתבו שהמשרה לא מתאימה / לא ממשיכים / "נעדכן כשתהיה משרה מתאימה", ורק אחרי שענית בו.
+    const NOT_FIT = /לא\s*מתאימ|לא\s*רלוונטי|לא\s*נמצא(?:ת|ה)?\s*מתאים|מישהו\s*אחר|מועמד(?:ים)?\s*אחר|לא\s*להמשיך|לא\s*ממשיכים|לא\s*נמשיך|לא\s*להתקדם|לא\s*מתקדמ|ג['׳]וניור\s*מדי|מדי\s*למשרה|נעדכן\s*אות|נשמח\s*לעדכן|כשי(?:י)?מצאו|כשתהיה\s*משרה|משרות\s*מתאימות|מאגר\s*המועמדים|not\s+(?:a\s+)?(?:good\s+)?fit|other\s+candidates|not\s+moving\s+forward|future\s+(?:opportunit|opening|role)/i;
+    const isNotFit = (e) => e.kind === 'דחייה' || NOT_FIT.test(String(e.text || ''));
+    const laterId = (a, b) => (a.length === b.length ? a > b : a.length > b.length);
+    const after = (m, n) => (String(m.date) > String(n.date)) || (String(m.date) === String(n.date) && m.msg_id && n.msg_id && laterId(String(m.msg_id), String(n.msg_id)));
+    const archiveSplit = (rows) => {
+      const groups = new Map();
+      rows.forEach((r) => { const k = r.thread_id || ('co:' + norm(r.company) + '|' + norm(r.role)); if (!groups.has(k)) groups.set(k, []); groups.get(k).push(r); });
+      const out = new Set(), threads = new Set();
+      groups.forEach((g, k) => {
+        const mine = (r) => r.mail_state === 'נשלח ממך';
+        const neg = g.filter((r) => !mine(r) && isNotFit(r));
+        const hit = neg.some((n) => {
+          const answered = n.mail_state === 'שלחת תגובה' || g.some((m) => mine(m) && after(m, n));
+          const reopened = g.some((m) => !mine(m) && !isNotFit(m) && m.kind !== 'הגשה' && after(m, n)); // אם אחרי זה הגיעה התקדמות — לא בארכיון
+          return answered && !reopened;
+        });
+        if (hit) { g.forEach((r) => out.add(r.id)); if (!k.startsWith('co:')) threads.add(k); }
+      });
+      return { ids: out, threads };
+    };
+    const arch = document.querySelector('.jt-arch'), archBody = arch.querySelector('tbody'), archCount = document.querySelector('.jt-arch-count');
+    const drawArchive = (rows) => {
+      archBody.replaceChildren();
+      const n = new Set(rows.map((r) => r.thread_id || r.company)).size;
+      archCount.textContent = n ? (n === 1 ? '(שיחה אחת)' : '(' + n + ' שיחות)') : '';
+      if (!rows.length) { const tr = document.createElement('tr'); const td = document.createElement('td'); td.colSpan = 6; td.className = 'jt-empty'; td.textContent = 'עוד אין שיחות בארכיון'; tr.appendChild(td); archBody.appendChild(tr); return; }
+      rows.slice().sort((a, b) => String(b.date).localeCompare(String(a.date))).forEach((r) => {
+        const tr = document.createElement('tr'); tr.dataset.key = r.id;
+        cell(tr, fmtDate(r.date), 'jt-date');
+        cell(tr, r.company, 'jt-company');
+        cell(tr, r.role, 'jt-hide-sm jt-role');
+        cell(tr, r.kind, r.kind === 'דחייה' ? 'jt-k-reject' : '');
+        linkCell(tr, r.text, r.link, r.thread_id);
+        stateCell(tr, r.mail_state);
+        archBody.appendChild(tr);
+      });
+    };
+    window.JT.archivedThreads = new Set();
     const drawReplies = () => {
       const d = dash.data('events');
       repBody.replaceChildren();
@@ -1123,7 +1182,11 @@
         tr.appendChild(td); repBody.appendChild(tr); return;
       }
       const chOf = channelOf();
-      const all = withLive(d.data || []).map((r) => ({ ...r, channel: chOf(r) }));
+      const everything = withLive(d.data || []).map((r) => ({ ...r, channel: chOf(r) }));
+      const split = archiveSplit(everything);
+      window.JT.archivedThreads = split.threads;
+      drawArchive(everything.filter((r) => split.ids.has(r.id)));
+      const all = everything.filter((r) => !split.ids.has(r.id));
       const counts = new Map();
       all.forEach((r) => counts.set(r.mail_state, (counts.get(r.mail_state) || 0) + 1));
       if (!repTouched && !counts.get(repFilter)) repFilter = 'הכל';

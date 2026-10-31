@@ -43,7 +43,8 @@
     status.textContent = last ? 'עודכן לאחרונה ' + last : '';
     const evs = (window.dash?.data('events').data) || [];
     const threads = new Set(evs.map((e) => e.thread_id).filter(Boolean));
-    const recent = (mails || []).filter((m) => m.kind !== 'אחר').sort((a, b) => b.date.localeCompare(a.date)).slice(0, 12);
+    const archived = window.JT?.archivedThreads || new Set();
+    const recent = (mails || []).filter((m) => m.kind !== 'אחר' && !archived.has(m.thread_id)).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 12);
     mailsBox.replaceChildren();
     if (recent.length) {
       const ul = el('ul', { class: 'jt-feed-list' });

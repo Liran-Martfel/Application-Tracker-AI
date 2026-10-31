@@ -14,7 +14,7 @@ const SENDERS = [{{SENDERS}}, 'jobs-noreply@linkedin.com'];
 const SUBJECT_WORDS = ['"your application"', '"thank you for applying"', '"application received"', 'מועמדות', 'מועמדותך', '"קורות החיים"', 'interview', 'ראיון'];
 
 const RULES = [
-  ['דחייה', /unfortunately|not to proceed|decided not to|not moving forward|other candidates|position has been filled|not been selected|לצערנו|לא נמשיך|לא התאים|מועמדים אחרים|המשרה אוישה|לא נוכל להתקדם/i],
+  ['דחייה', /unfortunately|not to proceed|decided not to|not moving forward|other candidates|position has been filled|not been selected|not (a|the right) (good )?fit|keep your (cv|resume|details) on file|future (opportunities|openings)|לצערנו|לא נמשיך|לא התאים|לא מתאימ|לא רלוונטי|לא נמצאת מתאים|לא נמצאת מתאימה|מישהו אחר|מועמדים אחרים|המשרה אוישה|לא נוכל להתקדם|נשמח לעדכן|נעדכן אותך|כשימצאו משרות|משרות מתאימות/i],
   ['הצעה', /job offer|offer letter|pleased to offer|הצעת עבודה|שמחים להציע/i],
   ['ראיון', /interview|phone screen|schedule a (call|time)|your availability|available to talk|ראיון|זימון|לתאם שיחה|לקבוע שיחה|שיחת היכרות|מתי נוח/i],
   ['מטלה', /assessment|home assignment|technical test|coding challenge|מבחן|מטלה|מטלת בית/i],
