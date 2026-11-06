@@ -1,0 +1,2 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#24407a"/><stop offset="1" stop-color="#111c33"/></linearGradient></defs><rect width="64" height="64" rx="16" fill="url(#g)"/><text x="32" y="42" text-anchor="middle" font-family="Poppins, Arial, sans-serif" font-size="26" font-weight="700" fill="#fbf8f2" letter-spacing="1">{{INITIALS}}</text><rect x="16" y="49" width="32" height="3" rx="1.5" fill="#b88a3e"/></svg>
+

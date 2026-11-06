@@ -1,6 +1,6 @@
 ---
 name: finding-job-clear
-description: "מציאת עבודה לכל משתמש (finding_job_clear): \"תקים לי מעקב חיפוש עבודה\" — sets up and runs a private, Gmail-synced job-application tracker for whoever installs it: CV-based onboarding, dashboard, follow-up drafts, job leads, job-site checks, push alerts on-request CV upgrades in natural human language, and CV applications sent only after the user approves each one."
+description: "מציאת עבודה לכל משתמש (finding_job_clear): \"תקים לי מעקב חיפוש עבודה\" — sets up and runs a private, Gmail-synced job-application tracker for whoever installs it: CV-based onboarding, dashboard, follow-up drafts, job leads, job-site checks, push alerts on-request CV upgrades in natural human language, and CV applications sent only after the user approves each one. Also builds an optional free personal recruiter site (\"תבנה לי אתר אישי\") with a project carousel and an AI chat that answers in the user's voice, from a personality questionnaire and a design questionnaire, plus full guides for connecting Gemini and running Google Apps Script."
 ---
 
 # Job-search tracker for any user (finding-job-clear)
@@ -49,7 +49,7 @@ Then:
 4. **First scan**: run the Daily scan (section 4) over the whole history window to fill applications/events, then update the live-query sender lists.
 5. **Test** the page (section 3), publish, read `data/users/me/check` until it is gone or `failed`.
 6. **Scheduled tasks**: create the ones they chose (section 5) with their times and timezone. Tell them each task's approval mode in one line.
-7. Give the user the dashboard (one line) and what will happen automatically.
+7. Give the user the dashboard (one line) and what will happen automatically. You may add, once, that a free personal site with an AI chat that answers recruiters in their voice can be built too (section 5f).
 
 To change the profile later ("שנה את התחום", "תוסיף אתר"): update `profile`, then update the affected scheduled-task prompts and the page placeholders.
 
@@ -140,9 +140,17 @@ A chat bubble in the bottom-right corner of the dashboard that knows the applica
 
 ## 5e. Job Feed — updates that don't use Claude (recommended)
 Scheduled Claude runs stop when the user's usage runs out. The Job Feed keeps the basics flowing without Claude: a Google Apps Script (`assets/job-feed.gs`) runs every hour on Google's servers, for free, even when the computer is off. It searches job mail (the senders from `gmail_unread` plus subject keywords, and the user's sent applications), labels threads with the job label, classifies each message by keyword rules (rejection / offer / interview / task / confirmation / viewed / sent), and parses LinkedIn job-alert emails into new jobs (junior + AI/software → "מתאים מאוד", senior/hardware skipped). It writes three tabs of a Google Sheet: `מיילים`, `משרות`, `סטטוס`. It never sends, deletes or archives.
-- Setup: create an empty spreadsheet with the Google Drive connector, fill `{{SHEET_ID}}` and `{{SENDERS}}` (quoted, comma-separated domains) in the script, send it to the user; they open script.google.com → New project, paste, run `setup` once and approve. Phone numbers are stripped and no personal names are stored (domain + company only).
+- Setup: create an empty spreadsheet with the Google Drive connector, fill `{{SHEET_ID}}` and `{{SENDERS}}` (quoted, comma-separated domains) in the script, send it to the user; they open script.google.com → New project, paste, run `setup` once and approve. Phone numbers are stripped and no personal names are stored (domain + company only). Walk the user through it with `references/apps-script-setup.md` (the full guide: creating the project, the "unverified app" approval, triggers, executions log, updating the code, services, troubleshooting) and, for lead scoring with Gemini, `references/gemini-setup.md`.
 - Dashboard: add `assets/feed-section.html` (fill `{{SHEET_ID}}`) and declare `{server:"Google Sheets", tools:["get_values"]}` — on a Dashboard-type page use the type's connector support instead. It shows recent job mail with a "חדש" mark when its thread is not yet in `events`, and new alert jobs not yet in leads or applications.
 - Claude's scans then only need to turn feed rows into dashboard rows and do the judgement work (drafts, prep, relevance), so a run that hits the usage limit loses nothing: the feed keeps collecting until Claude runs again.
+
+## 5f. Optional: a personal recruiter site (only if the user asks)
+Trigger: "תבנה לי אתר אישי", "build me a personal site", "אתר קורות חיים", or the dashboard delivery message offering it once. A free site on Cloudflare Workers where recruiters see the user's projects and ask an AI chat about them; the chat answers in the user's own voice (first person) from a knowledge base built from the CV, the project repos and a personality questionnaire.
+- **Template:** `assets/site/` (Worker with RAG chat over `knowledge/*.md`, project carousel, private visitor stats with "delete my visits", sign-in, rate limits, tests with a fake Gemini). It holds no personal data; everything personal is a `{{PLACEHOLDER}}` or a `FILL` block.
+- **Order:** design questionnaire (`references/site-design-questionnaire.md`) → personality questionnaire (`references/personality-questionnaire.md`) → follow `references/site-guide.md` step by step (fill, knowledge, test, deploy). Gemini: `references/gemini-setup.md`.
+- **Show before changing:** for any visual decision, publish real screenshots of the user's own page in the candidate looks and recommend one; for any bigger change, a demo first. Change the real page only after they approve.
+- **The user stays in control:** they create the Cloudflare account, sign in to wrangler, choose the password and type every secret themselves (never in chat); every deploy needs their explicit OK. Their site's code contains their contact details, so it goes in a private repo, never this public one.
+- **Facts only:** knowledge and cards use only the CV, the repos' own READMEs and logs, and the user's answers. Never invent numbers, never mention who wrote a repo's notes, never advertise the visitor stats on the page (one footer line covers privacy).
 
 ## 6. Rules that always apply
 1. JOB-RELEVANCE: an email counts only if it concerns one of the user's own applications/hiring processes and names a company or role. ATS / third-party senders (myworkday, comeet, teamtailor, successfactors, greenhouse, lever, hunterhrms, niloosoft…) count after reading the body. Ignore customer service, receipts, banks, government, marketing, security codes/password changes (even on careers sites), dev-tool alerts, course mail, job-alert digests (those feed leads only), social feeds. "Your application was sent to…" / "viewed your application" DO count.
@@ -165,3 +173,6 @@ Scheduled Claude runs stop when the user's usage runs out. The Job Feed keeps th
 - "תתחיל מחדש": confirm first, then rerun onboarding (keeps nothing unless they say so).
 - "תשדרג לי את קורות החיים" / a pasted CV-upgrade request: section 5b.
 - "תגיש ל-X" / a pasted apply request: section 5c.
+- "תבנה לי אתר אישי" / "שאלון אישיות" / "שאלון עיצוב": section 5f.
+- "איך מחברים את Gemini" / a Gemini error: `references/gemini-setup.md`.
+- "איך מריצים את הסקריפט" / an Apps Script error: `references/apps-script-setup.md`.

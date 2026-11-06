@@ -7,6 +7,8 @@
 - **טיוטות פולואפ** ב-Gmail (לא נשלחות לבד).
 - **Job Feed**: סקריפט Google Apps Script שאוסף עדכונים כל שעה, גם בלי Claude.
 - **סוכן מקומי** (אופציונלי) עם Ollama בתוך הדשבורד.
+- **אתר אישי למגייסים** (אופציונלי, חינמי): קרוסלת פרויקטים וצ׳אט AI שעונה בשמך, נבנה משאלון אישיות ושאלון עיצוב. "תבנה לי אתר אישי".
+- **מדריכים מלאים** לחיבור Gemini (חינמי) ולהרצת Google Apps Script.
 
 **מה יש כאן:** `skills/finding-job-clear` (הסקיל הראשי), `skills/human-writing`, `skills/gmail-job-labels`, ו-`dist/` (קבצי zip להתקנה + `jobs-agent.mcpb`).
 
@@ -24,6 +26,8 @@ A Claude-powered job-application tracker:
 - **Follow-up drafts** in Gmail (never sent automatically).
 - **Job Feed**: a Google Apps Script that collects updates hourly, without Claude.
 - An optional **local agent** (Ollama) inside the dashboard.
+- An optional free **personal recruiter site**: a project carousel and an AI chat that answers in your voice, built from a personality questionnaire and a design questionnaire. "Build me a personal site".
+- **Full guides** for connecting Gemini (free) and running Google Apps Script.
 
 **Contents:** `skills/finding-job-clear` (main skill), `skills/human-writing`, `skills/gmail-job-labels`, and `dist/` (installable zips + `jobs-agent.mcpb`).
 

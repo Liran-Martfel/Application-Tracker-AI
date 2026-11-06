@@ -1,0 +1,34 @@
+# Personal recruiter site (template from the finding-job-clear skill).
+# Fill the {{...}} values, then follow references/site-guide.md.
+name = "{{WORKER_NAME}}"          # lowercase letters, digits and hyphens; it becomes <name>.<account>.workers.dev
+main = "src/index.js"
+compatibility_date = "2026-10-01"
+
+[assets]
+directory = "./public"
+binding = "ASSETS"
+run_worker_first = ["/app*", "/api/*", "/login*"]
+
+# Public details the chat may share (they are on the page anyway). Never put secrets here.
+[vars]
+OWNER_NAME = "{{NAME_EN}}"
+OWNER_EMAIL = "{{EMAIL}}"
+OWNER_PHONE = "{{PHONE_OR_EMPTY}}"   # leave "" to keep the phone off the chat
+OWNER_GENDER = "{{GENDER}}"          # m / f / x: Hebrew first-person forms in the chat
+
+# Per-IP rate limits (login 5 / chat 20 per 10 minutes)
+[[durable_objects.bindings]]
+name = "LIMITER"
+class_name = "Limiter"
+
+# Anonymous visitor stats for the private area (one instance, SQLite)
+[[durable_objects.bindings]]
+name = "STATS"
+class_name = "Stats"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Limiter", "Stats"]
+
+# Secrets, set once each with `npx wrangler secret put NAME` (typed by the user, never pasted into chat):
+#   GEMINI_API_KEY, ADMIN_PASSWORD, SESSION_SECRET

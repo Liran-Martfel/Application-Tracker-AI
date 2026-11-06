@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>האזור הפרטי</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Assistant:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+/* FILL THEME: the same colors as public/index.html. Default: slate and copper, always light. */
+:root {
+  --bg: #eceae8; --bg-2: #f6f5f4; --navy: #2b3445; --accent: #2b3445; --accent-soft: rgba(43,52,69,.08); --gold: #a5694b; --gold-ink: #8a5238;
+  --text-muted: #5d6470; --danger: #b5434c; --success: #1f7a4a; --hair: rgba(43,52,69,.18);
+  --card: rgba(255,255,255,.7); --strong: rgba(255,255,255,.9); --shadow: 0 12px 40px rgba(43,52,69,.12); --radius: 18px;
+  --font: 'Poppins','Assistant',system-ui,sans-serif; --font-he: 'Assistant','Poppins',system-ui,sans-serif; color-scheme: light;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: linear-gradient(180deg, var(--bg-2), var(--bg) 70%) fixed; color: var(--navy); font: 400 1rem/1.55 var(--font-he); }
+main { max-width: 960px; margin: 0 auto; padding-block: 1.5rem 3rem; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 18px; }
+.top { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+h1 { margin: 0; font: 700 1.6rem var(--font); }
+.links { display: flex; gap: 8px; flex-wrap: wrap; }
+.btn { min-height: 38px; padding: 0 14px; border-radius: 10px; border: 1px solid var(--hair); background: var(--strong); color: var(--navy); font: 600 .9rem var(--font-he); display: inline-flex; align-items: center; text-decoration: none; cursor: pointer; }
+.btn.primary { background: var(--navy); color: #fff; border-color: var(--navy); }
+.btn[data-armed] { background: rgba(181,67,76,.12); color: var(--danger); border-color: var(--danger); }
+.btn:disabled { opacity: .6; cursor: default; }
+:is(.btn, button, a):focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.card { background: var(--card); border: 1px solid rgba(255,255,255,.9); border-radius: var(--radius); box-shadow: var(--shadow); padding: 20px; }
+h2 { margin: 0 0 4px; font: 600 1.15rem var(--font-he); }
+h3 { margin: 0 0 8px; font: 600 1rem var(--font-he); }
+.note { margin: 0; color: var(--text-muted); font-size: .88rem; }
+.done { margin: 0; font-weight: 600; color: var(--success); }
+.range { display: flex; gap: 6px; margin: 12px 0; }
+.chip { min-height: 30px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--hair); background: transparent; color: var(--text-muted); font: 600 .82rem var(--font-he); cursor: pointer; }
+.chip[aria-pressed="true"] { background: var(--navy); color: #fff; border-color: var(--navy); }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr)); gap: 10px; }
+.tile { background: var(--strong); border: 1px solid var(--hair); border-radius: 12px; padding: 12px 14px; }
+.tile b { display: block; font: 700 1.5rem var(--font); font-variant-numeric: tabular-nums; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr)); gap: 16px; margin-top: 16px; }
+.bar { display: grid; grid-template-columns: minmax(0, 8rem) minmax(0, 1fr) 2.5rem; gap: 8px; align-items: center; font-size: .85rem; margin-bottom: 6px; }
+.bar span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.track { height: 8px; border-radius: 999px; background: var(--accent-soft); overflow: hidden; }
+.fill { height: 100%; border-radius: 999px; background: var(--gold); }
+.mine-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin-top: 14px; }
+.qs { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; max-height: 18rem; overflow: auto; }
+.qs li { padding: 8px 10px; border-radius: 10px; background: var(--strong); border: 1px solid var(--hair); overflow-wrap: anywhere; }
+.qs small { display: block; color: var(--text-muted); }
+.tablewrap { overflow-x: auto; margin-top: 8px; }
+table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+th, td { padding: 8px 10px; text-align: start; border-bottom: 1px solid var(--hair); vertical-align: top; }
+th { color: var(--text-muted); font-weight: 600; white-space: nowrap; }
+tr.mine td { background: var(--accent-soft); }
+td.when { white-space: nowrap; font-variant-numeric: tabular-nums; direction: ltr; text-align: end; }
+</style>
+</head>
+<body>
+<main>
+  <div class="top">
+    <h1>האזור הפרטי</h1>
+    <div class="links">
+      <!-- {{TRACKER_URL}}: the job-search dashboard (the Claude Dashboard artifact), or remove this link -->
+      <a class="btn" href="{{TRACKER_URL}}" target="_blank" rel="noopener">מעקב חיפוש העבודה</a>
+      <a class="btn" href="/">לאתר</a>
+      <button class="btn" type="button" id="logout">יציאה</button>
+    </div>
+  </div>
+  <section class="card" aria-labelledby="vis-h">
+    <h2 id="vis-h">מי נכנס לאתר</h2>
+    <p class="note">ביקורים בעמוד הציבורי, בלי כתובות IP. מכשיר שהתחברת ממנו פעם אחת כבר לא נספר.</p>
+    <div class="range" id="range" role="group" aria-label="טווח זמן"></div>
+    <div id="vis"><p class="note">טוען…</p></div>
+  </section>
+</main>
+<script>
+const $ = (s) => document.querySelector(s);
+const el = (tag, text, cls) => { const e = document.createElement(tag); if (text != null) e.textContent = text; if (cls) e.className = cls; return e; };
+async function api(path, opts) {
+  const r = await fetch(path, { credentials: 'same-origin', ...opts });
+  if (r.status === 401) { location.href = '/app'; throw new Error('unauthorized'); }
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok || j.ok === false) throw new Error(j.error || 'failed');
+  return j;
+}
+// a device that signed in is the owner's: the public page never counts it again
+try { localStorage.setItem('owner', '1'); } catch {}
+$('#logout').addEventListener('click', async () => { await fetch('/api/logout', { method: 'POST' }); location.href = '/'; });
+
+const SEC = { top: 'ראש העמוד', projects: 'פרויקטים', chat: 'צ׳אט', experience: 'ניסיון', skills: 'כישורים', end: 'סוף העמוד' };
+const CLK = { 'email-gmail': 'מייל דרך Gmail', 'email-app': 'מייל באפליקציה', 'email-copy': 'העתיקו את המייל', 'cv-he': 'קורות חיים בעברית', 'cv-en': 'קורות חיים באנגלית', whatsapp: 'וואטסאפ', github: 'GitHub', linkedin: 'LinkedIn', chip: 'שאלה מוכנה בצ׳אט' };
+const clk = (w) => CLK[w] || String(w).replace(/^project:/, 'פרויקט: ').replace(/^lang-/, 'שפה: ');
+const mmss = (n) => `${Math.floor(n / 60)}:${String(n % 60).padStart(2, '0')}`;
+const when = (t) => new Date(t).toLocaleString('he-IL', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+let days = 30, msg = '';
+
+function bars(title, rows, label) {
+  const c = el('div'); c.append(el('h3', title));
+  if (!rows.length) { c.append(el('p', 'עוד אין נתונים', 'note')); return c; }
+  const max = Math.max(1, ...rows.map((r) => r[1]));
+  rows.forEach(([k, v]) => { const r = el('div', null, 'bar'); const t = el('div', null, 'track'); const f = el('div', null, 'fill'); f.style.width = (v / max * 100) + '%'; t.append(f); r.append(el('span', label(k)), t, el('b', String(v))); c.append(r); });
+  return c;
+}
+// first press arms the button for 4 seconds, the second press does it
+function confirmTwice(btn, ask, run) {
+  if (btn.dataset.armed) { delete btn.dataset.armed; clearTimeout(btn._t); btn.disabled = true; run(); return; }
+  btn.dataset.armed = '1'; btn._label = btn._label || btn.textContent; btn.textContent = ask;
+  btn._t = setTimeout(() => { delete btn.dataset.armed; btn.textContent = btn._label; }, 4000);
+}
+async function forget(body) {
+  try { const r = await api('/api/private/stats/forget', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }); msg = `נמחקו ${r.visits} ביקורים${r.questions ? ` ו-${r.questions} שאלות` : ''}.`; }
+  catch { msg = 'המחיקה לא הצליחה. אפשר לנסות שוב.'; }
+  load();
+}
+async function load() {
+  $('#range').replaceChildren(...[7, 30, 90].map((d) => { const b = el('button', d + ' ימים', 'chip'); b.type = 'button'; b.setAttribute('aria-pressed', String(d === days)); b.addEventListener('click', () => { days = d; load(); }); return b; }));
+  const box = $('#vis');
+  try {
+    const v = await api('/api/private/stats?days=' + days);
+    const done = msg ? Object.assign(el('p', msg, 'done'), { role: 'status' }) : null; msg = '';
+    if (!v.visits) { box.replaceChildren(...[done, el('p', `עוד אין ביקורים ב-${days} הימים האחרונים.`, 'note')].filter(Boolean)); return; }
+    const tile = (label, value) => { const t = el('div', null, 'tile'); t.append(el('span', label, 'note'), el('b', value)); return t; };
+    const tiles = el('div', null, 'tiles');
+    tiles.append(tile('ביקורים', String(v.visits)), tile('מבקרים שונים', String(v.visitors)), tile('זמן ממוצע', mmss(v.avg_seconds)), tile('יצאו תוך 10 שניות', String(v.quick_exits)),
+      tile('הורידו קורות חיים', String(v.clicks.filter(([k]) => k.startsWith('cv-')).reduce((a, [, n]) => a + n, 0))), tile('שאלות בצ׳אט', String(v.questions.length)));
+    const mineBar = el('div', null, 'mine-bar'); if (done) mineBar.append(done);
+    if (v.mine) { const all = el('button', `למחוק את ${v.mine} הביקורים שלי מהמכשיר הזה`, 'btn'); all.type = 'button'; all.addEventListener('click', () => confirmTwice(all, `בטוח? ללחוץ שוב כדי למחוק ${v.mine} ביקורים`, () => forget({ mine: true }))); mineBar.append(all); }
+    mineBar.append(el('p', 'ביקורים מהמכשיר הזה מסומנים. ביקור שלך מרשת אחרת אפשר למחוק עם "זה אני" ליד השורה.', 'note'));
+    const grid = el('div', null, 'grid');
+    grid.append(bars('עד לאן הגיעו', v.sections, (k) => SEC[k] || k), bars('גלילה', v.depth.map(([d, n]) => ['לפחות ' + d + '%', n]), (k) => k), bars('על מה לחצו', v.clicks.slice(0, 10), clk),
+      bars('מאיפה הגיעו', v.referrers, (k) => k), bars('מדינה', v.countries, (k) => k), bars('מכשיר', v.devices, (k) => k));
+    const qs = el('div'); qs.style.marginTop = '16px'; qs.append(el('h3', 'מה שאלו בצ׳אט'));
+    if (!v.questions.length) qs.append(el('p', 'עוד לא שאלו.', 'note'));
+    else { const ul = el('ul', null, 'qs'); v.questions.forEach((q) => { const li = el('li', q.q); li.dir = 'auto'; li.append(el('small', when(q.at))); ul.append(li); }); qs.append(ul); }
+    const recent = el('div'); recent.style.marginTop = '16px'; recent.append(el('h3', 'ביקורים אחרונים'));
+    const wrap = el('div', null, 'tablewrap'), tb = el('table'), hr = el('tr');
+    ['מתי', 'זמן', 'גלילה', 'הגיעו עד', 'לחצו', 'שאלות', 'מאיפה', ''].forEach((x) => hr.append(el('th', x)));
+    const thead = el('thead'); thead.append(hr); const tbody = el('tbody');
+    v.recent.forEach((r) => {
+      const tr = el('tr', null, r.mine ? 'mine' : '');
+      [when(r.at), mmss(r.seconds), r.depth + '%', r.sections.map((x) => SEC[x] || x).join(', '), r.clicks.map(clk).join(', ') || '—', String(r.questions || 0), [r.ref, r.country, r.device, r.mine ? 'המכשיר הזה' : ''].filter(Boolean).join(' · ')]
+        .forEach((x, i) => tr.append(el('td', x, i === 0 ? 'when' : '')));
+      const td = el('td'), del = el('button', 'זה אני', 'chip'); del.type = 'button';
+      del.addEventListener('click', () => confirmTwice(del, 'למחוק?', () => forget({ ids: [r.id] })));
+      td.append(del); tr.append(td); tbody.append(tr);
+    });
+    tb.append(thead, tbody); wrap.append(tb); recent.append(wrap);
+    box.replaceChildren(tiles, mineBar, grid, qs, recent);
+  } catch {
+    const b = el('button', 'לנסות שוב', 'btn'); b.type = 'button'; b.addEventListener('click', load);
+    box.replaceChildren(el('p', 'לא הצלחתי לטעון את נתוני הביקורים.', 'note'), b);
+  }
+}
+load();
+</script>
+</body>
+</html>
