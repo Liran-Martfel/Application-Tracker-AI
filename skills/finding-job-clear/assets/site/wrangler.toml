@@ -1,22 +1,26 @@
-# Personal recruiter site (template from the finding-job-clear skill).
-# Fill the {{...}} values, then follow references/site-guide.md.
-name = "{{WORKER_NAME}}"          # lowercase letters, digits and hyphens; it becomes <name>.<account>.workers.dev
+name = "{{WORKER_NAME}}"
 main = "src/index.js"
 compatibility_date = "2026-10-01"
 
 [assets]
 directory = "./public"
 binding = "ASSETS"
-run_worker_first = ["/app*", "/api/*", "/login*"]
+run_worker_first = ["/app*", "/api/*", "/login*", "/js/app-*"]
 
-# Public details the chat may share (they are on the page anyway). Never put secrets here.
+# Wake free Render demos (DEMOS in src/index.js; delete this block if there are none) every 10 minutes, Sun–Thu, 05:00–17:59 UTC
+# = about 07:00–20:00 in Israel (winter) / 08:00–21:00 (summer). See wakeDemos() in src/index.js.
+[triggers]
+crons = ["*/10 5-17 * * SUN-THU"]
+
+# Raise this number and deploy to clear every login block at once (5 wrong passwords block an address for 24h)
 [vars]
-OWNER_NAME = "{{NAME_EN}}"
-OWNER_EMAIL = "{{EMAIL}}"
-OWNER_PHONE = "{{PHONE_OR_EMPTY}}"   # leave "" to keep the phone off the chat
-OWNER_GENDER = "{{GENDER}}"          # m / f / x: Hebrew first-person forms in the chat
+LOGIN_LOCK_VERSION = "1"
 
-# Per-IP rate limits (login 5 / chat 20 per 10 minutes)
+# Backup model for the public chat when Gemini is out of quota (Workers AI, free 10,000 neurons a day)
+[ai]
+binding = "AI"
+
+# Per-IP rate limits (login 5 / chat 20 per 10 minutes) live in this Durable Object
 [[durable_objects.bindings]]
 name = "LIMITER"
 class_name = "Limiter"
@@ -28,7 +32,11 @@ class_name = "Stats"
 
 [[migrations]]
 tag = "v1"
-new_sqlite_classes = ["Limiter", "Stats"]
+new_sqlite_classes = ["Limiter"]
 
-# Secrets, set once each with `npx wrangler secret put NAME` (typed by the user, never pasted into chat):
-#   GEMINI_API_KEY, ADMIN_PASSWORD, SESSION_SECRET
+[[migrations]]
+tag = "v2"
+new_sqlite_classes = ["Stats"]
+
+# Secrets (set once with `npx wrangler secret put NAME`):
+#   GEMINI_API_KEY, APPS_SCRIPT_URL, APPS_SCRIPT_TOKEN, FEED_TOKEN, ADMIN_PASSWORD, SESSION_SECRET

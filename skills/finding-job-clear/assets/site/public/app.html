@@ -3,154 +3,725 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="robots" content="noindex">
-<title>האזור הפרטי</title>
+<meta name="robots" content="noindex, nofollow">
+<title>מעקב הגשות — {{FIRST_NAME_HE}}</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Assistant:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Assistant:wght@400;500;600;700;800&family=Poppins:wght@400;500;600;700&display=swap">
+<script src="/vendor/d3.min.js"></script>
 <style>
-/* FILL THEME: the same colors as public/index.html. Default: slate and copper, always light. */
+/* Page shell: the job tracker (.jt) on its own page, with the small set of tokens the Dashboard type used to supply. */
 :root {
-  --bg: #eceae8; --bg-2: #f6f5f4; --navy: #2b3445; --accent: #2b3445; --accent-soft: rgba(43,52,69,.08); --gold: #a5694b; --gold-ink: #8a5238;
-  --text-muted: #5d6470; --danger: #b5434c; --success: #1f7a4a; --hair: rgba(43,52,69,.18);
-  --card: rgba(255,255,255,.7); --strong: rgba(255,255,255,.9); --shadow: 0 12px 40px rgba(43,52,69,.12); --radius: 18px;
-  --font: 'Poppins','Assistant',system-ui,sans-serif; --font-he: 'Assistant','Poppins',system-ui,sans-serif; color-scheme: light;
+  --page-bg: #eceae8;
+  --cds-rem-scale: 1;
+  --cds-font-size-caption: .75rem; --cds-font-size-body: .875rem; --cds-font-size-heading: .9375rem; --cds-font-size-title: 1.375rem;
+  --cds-font-weight-medium: 500;
+  --cds-gap-xs: .5rem; --cds-gap-sm: .75rem; --cds-gap-md: 1rem; --cds-gap-lg: 1.75rem;
+  --cds-pad-xs: .25rem; --cds-pad-sm: .375rem; --cds-pad-md: .5rem; --cds-pad-lg: .75rem;
+  --cds-radius: .25rem; --cds-dur-slow: .45s; --cds-ease-out: cubic-bezier(.165,.84,.44,1);
+  --cds-chart-grid: rgba(43,52,69,.10); --cds-chart-axis: rgba(43,52,69,.35); --cds-chart-muted: #8a8f98; --cds-chart-status-critical: #a23a43;
+  --cds-text-secondary: #5d6470; --cds-surface-popover: #ffffff; --cds-shadow-popover: 0 8px 24px #0000001f, 0 2px 6px #00000014; --cds-border: rgba(43,52,69,.14);
+  --font-anthropic-sans: "Assistant", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-anthropic-serif: "Assistant", ui-serif, Georgia, serif;
+  --color-fg: #2b3445; --color-fg-muted: #5d6470; --color-panel: rgba(255,255,255,.55); --color-bg: rgba(255,255,255,.82); --color-border-line: rgba(43,52,69,.14);
+  --color-ok: #1a6b40; --color-bad: #a23a43; --color-warn: #8a5238;
 }
-* { box-sizing: border-box; }
-body { margin: 0; background: linear-gradient(180deg, var(--bg-2), var(--bg) 70%) fixed; color: var(--navy); font: 400 1rem/1.55 var(--font-he); }
-main { max-width: 960px; margin: 0 auto; padding-block: 1.5rem 3rem; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 18px; }
-.top { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
-h1 { margin: 0; font: 700 1.6rem var(--font); }
-.links { display: flex; gap: 8px; flex-wrap: wrap; }
-.btn { min-height: 38px; padding: 0 14px; border-radius: 10px; border: 1px solid var(--hair); background: var(--strong); color: var(--navy); font: 600 .9rem var(--font-he); display: inline-flex; align-items: center; text-decoration: none; cursor: pointer; }
-.btn.primary { background: var(--navy); color: #fff; border-color: var(--navy); }
-.btn[data-armed] { background: rgba(181,67,76,.12); color: var(--danger); border-color: var(--danger); }
-.btn:disabled { opacity: .6; cursor: default; }
-:is(.btn, button, a):focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.card { background: var(--card); border: 1px solid rgba(255,255,255,.9); border-radius: var(--radius); box-shadow: var(--shadow); padding: 20px; }
-h2 { margin: 0 0 4px; font: 600 1.15rem var(--font-he); }
-h3 { margin: 0 0 8px; font: 600 1rem var(--font-he); }
-.note { margin: 0; color: var(--text-muted); font-size: .88rem; }
-.done { margin: 0; font-weight: 600; color: var(--success); }
-.range { display: flex; gap: 6px; margin: 12px 0; }
-.chip { min-height: 30px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--hair); background: transparent; color: var(--text-muted); font: 600 .82rem var(--font-he); cursor: pointer; }
-.chip[aria-pressed="true"] { background: var(--navy); color: #fff; border-color: var(--navy); }
-.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr)); gap: 10px; }
-.tile { background: var(--strong); border: 1px solid var(--hair); border-radius: 12px; padding: 12px 14px; }
-.tile b { display: block; font: 700 1.5rem var(--font); font-variant-numeric: tabular-nums; }
-.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr)); gap: 16px; margin-top: 16px; }
-.bar { display: grid; grid-template-columns: minmax(0, 8rem) minmax(0, 1fr) 2.5rem; gap: 8px; align-items: center; font-size: .85rem; margin-bottom: 6px; }
-.bar span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.track { height: 8px; border-radius: 999px; background: var(--accent-soft); overflow: hidden; }
-.fill { height: 100%; border-radius: 999px; background: var(--gold); }
-.mine-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin-top: 14px; }
-.qs { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; max-height: 18rem; overflow: auto; }
-.qs li { padding: 8px 10px; border-radius: 10px; background: var(--strong); border: 1px solid var(--hair); overflow-wrap: anywhere; }
-.qs small { display: block; color: var(--text-muted); }
-.tablewrap { overflow-x: auto; margin-top: 8px; }
-table { width: 100%; border-collapse: collapse; font-size: .85rem; }
-th, td { padding: 8px 10px; text-align: start; border-bottom: 1px solid var(--hair); vertical-align: top; }
-th { color: var(--text-muted); font-weight: 600; white-space: nowrap; }
-tr.mine td { background: var(--accent-soft); }
-td.when { white-space: nowrap; font-variant-numeric: tabular-nums; direction: ltr; text-align: end; }
+/* dark: the same slate and copper, retuned for a dark page (contrast checked) */
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --page-bg: #1a1f29; --cds-chart-grid: rgba(236,235,233,.12); --cds-chart-axis: rgba(236,235,233,.35); --cds-chart-muted: #7d838e; --cds-text-secondary: #a9adb5; --cds-surface-popover: #232a36; --cds-shadow-popover: 0 8px 24px #00000052, 0 2px 6px #0003; --cds-border: rgba(236,235,233,.14);
+  --color-fg: #ecebe9; --color-fg-muted: #a9adb5; --color-panel: rgba(35,42,54,.6); --color-bg: rgba(40,48,61,.85); --color-border-line: rgba(236,235,233,.14); --color-ok: #5cc493; --color-bad: #ec8a91; --color-warn: #d19a7c;
+  color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --page-bg: #1a1f29; --cds-chart-grid: rgba(236,235,233,.12); --cds-chart-axis: rgba(236,235,233,.35); --cds-chart-muted: #7d838e; --cds-text-secondary: #a9adb5; --cds-surface-popover: #232a36; --cds-shadow-popover: 0 8px 24px #00000052, 0 2px 6px #0003; --cds-border: rgba(236,235,233,.14);
+  --color-fg: #ecebe9; --color-fg-muted: #a9adb5; --color-panel: rgba(35,42,54,.6); --color-bg: rgba(40,48,61,.85); --color-border-line: rgba(236,235,233,.14); --color-ok: #5cc493; --color-bad: #ec8a91; --color-warn: #d19a7c;
+  color-scheme: dark; }
+html, body { background: var(--page-bg); }
+body { margin: 0; color: var(--color-fg); font-family: var(--font-anthropic-sans); font-size: var(--cds-font-size-body); line-height: 1.5; padding-block: 16px 96px; padding-left: max(12px, env(safe-area-inset-left, 0px)); padding-right: max(12px, env(safe-area-inset-right, 0px)); }
+.dash-skeleton { color: transparent !important; background: linear-gradient(90deg, var(--color-border-line), transparent, var(--color-border-line)); background-size: 200% 100%; border-radius: 6px; animation: dash-sk 1.4s linear infinite; min-height: 1em; }
+@keyframes dash-sk { to { background-position: -200% 0; } }
+@media (prefers-reduced-motion: reduce) { .dash-skeleton { animation: none; } }
+table { border-collapse: collapse; }
+.jt-tablewrap { overflow-x: auto; }
+.jt-table { width: 100%; }
+.jt-table th, .jt-table td { text-align: start; padding: 8px 10px; vertical-align: top; }
+.jt-table th button { all: unset; cursor: pointer; font-weight: 600; }
+.jt-table td { border-top: 1px solid var(--color-border-line); }
+.jt-table a { color: inherit; }
+.jt-updated { text-align: center; color: var(--color-fg-muted); font-size: .8rem; margin: 18px 0 0; }
 </style>
+<style>
+[hidden] { display: none !important; }
+/* site bar: back to the public page + sign out */
+.site-bar { display: flex; justify-content: space-between; align-items: center; gap: 8px; max-width: 1200px; margin: 0 auto 12px; }
+.site-bar a, .site-bar button { font: 600 .9rem var(--font-anthropic-sans); color: var(--color-fg); background: var(--color-panel); border: 1px solid var(--color-border-line); border-radius: 999px; padding: 6px 14px; min-height: 36px; text-decoration: none; cursor: pointer; display: inline-flex; align-items: center; }
+.site-bar a:focus-visible, .site-bar button:focus-visible { outline: 2px solid var(--color-fg); outline-offset: 2px; }
+.jt { max-width: 1200px; margin: 0 auto; }
+.jt-cv-out[readonly] { color: var(--color-fg); }
+.jt-sheet input.jt-input { min-height: 40px; }
+</style>
+<script src="/js/app-1.js"></script>
 </head>
 <body>
-<main>
-  <div class="top">
-    <h1>האזור הפרטי</h1>
-    <div class="links">
-      <!-- {{TRACKER_URL}}: the job-search dashboard (the Claude Dashboard artifact), or remove this link -->
-      <a class="btn" href="{{TRACKER_URL}}" target="_blank" rel="noopener">מעקב חיפוש העבודה</a>
-      <a class="btn" href="/">לאתר</a>
-      <button class="btn" type="button" id="logout">יציאה</button>
-    </div>
-  </div>
-  <section class="card" aria-labelledby="vis-h">
-    <h2 id="vis-h">מי נכנס לאתר</h2>
-    <p class="note">ביקורים בעמוד הציבורי, בלי כתובות IP. מכשיר שהתחברת ממנו פעם אחת כבר לא נספר.</p>
-    <div class="range" id="range" role="group" aria-label="טווח זמן"></div>
-    <div id="vis"><p class="note">טוען…</p></div>
+<nav class="site-bar" dir="rtl"><a href="/">→ לאתר</a><button type="button" id="logout">יציאה</button></nav>
+
+<div class="jt" dir="rtl" lang="he">
+  <header class="jt-head" id="top">
+    <h1 class="jt-title">מעקב הגשות קורות חיים</h1>
+    <p class="jt-take" id="today">
+      היום: <span data-source="kpis" data-field="waiting_me" data-row="0" class="dash-skeleton">—</span> מיילים מחכים לתגובה שלך ·
+      <span data-source="kpis" data-field="followups_due" data-row="0" class="dash-skeleton">—</span> פולואפים שהגיע זמנם ·
+      <span data-source="kpis" data-field="in_process" data-row="0" class="dash-skeleton">—</span> תהליכים פעילים
+    </p>
+    <p class="jt-note" id="last-run"></p>
+  </header>
+  <div class="jt-error" id="load-error" role="alert" hidden><span>לא הצלחתי לטעון את הנתונים מ-Google. אולי הגיליון או הסקריפט לא זמינים כרגע.</span><button type="button" class="jt-secondary" id="retry">נסה שוב</button></div>
+  <section class="jt-kpis" id="kpis">
+    <div class="jt-kpi"><div class="jt-kpi-label">הגשות פתוחות</div><div class="jt-kpi-num"><span data-source="kpis" data-field="active" data-row="0" class="dash-skeleton">—</span></div><div class="jt-kpi-sub">מתוך <span data-source="kpis" data-field="total" data-row="0">—</span> מאז סוף יולי</div></div>
+    <div class="jt-kpi jt-kpi-good"><div class="jt-kpi-label">שיעור מענה</div><div class="jt-kpi-num"><span data-source="kpis" data-field="response_pct" data-row="0" class="dash-skeleton">—</span><span class="jt-pct">%</span></div><div class="jt-kpi-sub">קיבלו תשובה מעבר לאישור אוטומטי</div></div>
+    <div class="jt-kpi"><div class="jt-kpi-label">הגשות השבוע</div><div class="jt-kpi-num"><span data-source="kpis" data-field="week" data-row="0" class="dash-skeleton">—</span></div><div class="jt-kpi-sub">מיום ראשון, היעד 5</div></div>
+    <div class="jt-kpi jt-kpi-warn"><div class="jt-kpi-label">ממתינים לתגובה שלי</div><div class="jt-kpi-num"><span data-source="kpis" data-field="waiting_me" data-row="0" class="dash-skeleton">—</span></div><div class="jt-kpi-sub">מיילים שלא נקראו או מחכים לתשובה</div></div>
   </section>
-</main>
-<script>
-const $ = (s) => document.querySelector(s);
-const el = (tag, text, cls) => { const e = document.createElement(tag); if (text != null) e.textContent = text; if (cls) e.className = cls; return e; };
-async function api(path, opts) {
-  const r = await fetch(path, { credentials: 'same-origin', ...opts });
-  if (r.status === 401) { location.href = '/app'; throw new Error('unauthorized'); }
-  const j = await r.json().catch(() => ({}));
-  if (!r.ok || j.ok === false) throw new Error(j.error || 'failed');
-  return j;
-}
-// a device that signed in is the owner's: the public page never counts it again
-try { localStorage.setItem('owner', '1'); } catch {}
-$('#logout').addEventListener('click', async () => { await fetch('/api/logout', { method: 'POST' }); location.href = '/'; });
 
-const SEC = { top: 'ראש העמוד', projects: 'פרויקטים', chat: 'צ׳אט', experience: 'ניסיון', skills: 'כישורים', end: 'סוף העמוד' };
-const CLK = { 'email-gmail': 'מייל דרך Gmail', 'email-app': 'מייל באפליקציה', 'email-copy': 'העתיקו את המייל', 'cv-he': 'קורות חיים בעברית', 'cv-en': 'קורות חיים באנגלית', whatsapp: 'וואטסאפ', github: 'GitHub', linkedin: 'LinkedIn', chip: 'שאלה מוכנה בצ׳אט' };
-const clk = (w) => CLK[w] || String(w).replace(/^project:/, 'פרויקט: ').replace(/^lang-/, 'שפה: ');
-const mmss = (n) => `${Math.floor(n / 60)}:${String(n % 60).padStart(2, '0')}`;
-const when = (t) => new Date(t).toLocaleString('he-IL', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
-let days = 30, msg = '';
+  <section class="jt-card jt-cv" id="cv" aria-labelledby="cv-h">
+    <div class="jt-cv-head">
+      <div>
+        <h2 class="jt-h" id="cv-h">קורות חיים: שדרוג והגשה</h2>
+        <p class="jt-note">קורה רק כשאתה מבקש. בוחרים משרה ולוחצים: שדרוג נותן הצעות שיפור לקורות החיים מול המשרה, הגשה כותבת מייל הגשה קצר ושומרת אותו כטיוטה ב-Gmail. Gemini כותב רק מתוך קורות החיים שלך, ושום דבר לא נשלח בלי אישור שלך</p>
+      </div>
+    </div>
+    <div class="jt-cv-form">
+      <label class="jt-field"><span>משרת יעד</span>
+        <select id="cv-target" class="jt-input"><option value="">בלי משרה מסוימת — שיפור כללי</option></select>
+      </label>
+      <label class="jt-field"><span>שפת קורות החיים</span>
+        <select id="cv-lang" class="jt-input">
+          <option value="לפי המשרה">לפי המשרה</option>
+          <option value="עברית">עברית</option>
+          <option value="English">English</option>
+        </select>
+      </label>
+      <label class="jt-field jt-field-wide"><span>מה לשנות / הערות להגשה</span>
+        <textarea id="cv-ask" class="jt-input" rows="3" placeholder="למשל: להבליט פרויקט מסוים, לקצר לעמוד אחד, תקציר חדש שמתאים לתפקיד…"></textarea>
+      </label>
+      <div class="jt-cv-actions jt-field-wide">
+        <button type="button" id="cv-go" class="jt-primary">שדרוג קורות חיים</button>
+        <button type="button" id="cv-apply" class="jt-secondary">הגשת קורות חיים</button>
+        <span id="cv-status" class="jt-note" role="status"></span>
+      </div>
+      <textarea id="cv-out" class="jt-input jt-cv-out jt-field-wide" rows="12" readonly hidden aria-label="הצעות השיפור"></textarea>
+      <div class="jt-cv-actions jt-field-wide" id="cv-out-actions" hidden><button type="button" id="cv-copy" class="jt-secondary">העתקה</button></div>
+    </div>
+  </section>
 
-function bars(title, rows, label) {
-  const c = el('div'); c.append(el('h3', title));
-  if (!rows.length) { c.append(el('p', 'עוד אין נתונים', 'note')); return c; }
-  const max = Math.max(1, ...rows.map((r) => r[1]));
-  rows.forEach(([k, v]) => { const r = el('div', null, 'bar'); const t = el('div', null, 'track'); const f = el('div', null, 'fill'); f.style.width = (v / max * 100) + '%'; t.append(f); r.append(el('span', label(k)), t, el('b', String(v))); c.append(r); });
-  return c;
-}
-// first press arms the button for 4 seconds, the second press does it
-function confirmTwice(btn, ask, run) {
-  if (btn.dataset.armed) { delete btn.dataset.armed; clearTimeout(btn._t); btn.disabled = true; run(); return; }
-  btn.dataset.armed = '1'; btn._label = btn._label || btn.textContent; btn.textContent = ask;
-  btn._t = setTimeout(() => { delete btn.dataset.armed; btn.textContent = btn._label; }, 4000);
-}
-async function forget(body) {
-  try { const r = await api('/api/private/stats/forget', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }); msg = `נמחקו ${r.visits} ביקורים${r.questions ? ` ו-${r.questions} שאלות` : ''}.`; }
-  catch { msg = 'המחיקה לא הצליחה. אפשר לנסות שוב.'; }
-  load();
-}
-async function load() {
-  $('#range').replaceChildren(...[7, 30, 90].map((d) => { const b = el('button', d + ' ימים', 'chip'); b.type = 'button'; b.setAttribute('aria-pressed', String(d === days)); b.addEventListener('click', () => { days = d; load(); }); return b; }));
-  const box = $('#vis');
-  try {
-    const v = await api('/api/private/stats?days=' + days);
-    const done = msg ? Object.assign(el('p', msg, 'done'), { role: 'status' }) : null; msg = '';
-    if (!v.visits) { box.replaceChildren(...[done, el('p', `עוד אין ביקורים ב-${days} הימים האחרונים.`, 'note')].filter(Boolean)); return; }
-    const tile = (label, value) => { const t = el('div', null, 'tile'); t.append(el('span', label, 'note'), el('b', value)); return t; };
-    const tiles = el('div', null, 'tiles');
-    tiles.append(tile('ביקורים', String(v.visits)), tile('מבקרים שונים', String(v.visitors)), tile('זמן ממוצע', mmss(v.avg_seconds)), tile('יצאו תוך 10 שניות', String(v.quick_exits)),
-      tile('הורידו קורות חיים', String(v.clicks.filter(([k]) => k.startsWith('cv-')).reduce((a, [, n]) => a + n, 0))), tile('שאלות בצ׳אט', String(v.questions.length)));
-    const mineBar = el('div', null, 'mine-bar'); if (done) mineBar.append(done);
-    if (v.mine) { const all = el('button', `למחוק את ${v.mine} הביקורים שלי מהמכשיר הזה`, 'btn'); all.type = 'button'; all.addEventListener('click', () => confirmTwice(all, `בטוח? ללחוץ שוב כדי למחוק ${v.mine} ביקורים`, () => forget({ mine: true }))); mineBar.append(all); }
-    mineBar.append(el('p', 'ביקורים מהמכשיר הזה מסומנים. ביקור שלך מרשת אחרת אפשר למחוק עם "זה אני" ליד השורה.', 'note'));
-    const grid = el('div', null, 'grid');
-    grid.append(bars('עד לאן הגיעו', v.sections, (k) => SEC[k] || k), bars('גלילה', v.depth.map(([d, n]) => ['לפחות ' + d + '%', n]), (k) => k), bars('על מה לחצו', v.clicks.slice(0, 10), clk),
-      bars('מאיפה הגיעו', v.referrers, (k) => k), bars('מדינה', v.countries, (k) => k), bars('מכשיר', v.devices, (k) => k));
-    const qs = el('div'); qs.style.marginTop = '16px'; qs.append(el('h3', 'מה שאלו בצ׳אט'));
-    if (!v.questions.length) qs.append(el('p', 'עוד לא שאלו.', 'note'));
-    else { const ul = el('ul', null, 'qs'); v.questions.forEach((q) => { const li = el('li', q.q); li.dir = 'auto'; li.append(el('small', when(q.at))); ul.append(li); }); qs.append(ul); }
-    const recent = el('div'); recent.style.marginTop = '16px'; recent.append(el('h3', 'ביקורים אחרונים'));
-    const wrap = el('div', null, 'tablewrap'), tb = el('table'), hr = el('tr');
-    ['מתי', 'זמן', 'גלילה', 'הגיעו עד', 'לחצו', 'שאלות', 'מאיפה', ''].forEach((x) => hr.append(el('th', x)));
-    const thead = el('thead'); thead.append(hr); const tbody = el('tbody');
-    v.recent.forEach((r) => {
-      const tr = el('tr', null, r.mine ? 'mine' : '');
-      [when(r.at), mmss(r.seconds), r.depth + '%', r.sections.map((x) => SEC[x] || x).join(', '), r.clicks.map(clk).join(', ') || '—', String(r.questions || 0), [r.ref, r.country, r.device, r.mine ? 'המכשיר הזה' : ''].filter(Boolean).join(' · ')]
-        .forEach((x, i) => tr.append(el('td', x, i === 0 ? 'when' : '')));
-      const td = el('td'), del = el('button', 'זה אני', 'chip'); del.type = 'button';
-      del.addEventListener('click', () => confirmTwice(del, 'למחוק?', () => forget({ ids: [r.id] })));
-      td.append(del); tr.append(td); tbody.append(tr);
-    });
-    tb.append(thead, tbody); wrap.append(tb); recent.append(wrap);
-    box.replaceChildren(tiles, mineBar, grid, qs, recent);
-  } catch {
-    const b = el('button', 'לנסות שוב', 'btn'); b.type = 'button'; b.addEventListener('click', load);
-    box.replaceChildren(el('p', 'לא הצלחתי לטעון את נתוני הביקורים.', 'note'), b);
+  <section class="jt-card jt-replies-card" id="replies">
+    <div class="jt-tablehead">
+      <div>
+        <h2 class="jt-h">תשובות ופניות שקיבלת</h2>
+        <p class="jt-note">כל המיילים על ההגשות שלך: זימונים, בקשות לשיחה, מטלות, אישורים ודחיות. לחיצה על הטקסט פותחת את המייל עצמו</p>
+      </div>
+      <div class="jt-controls">
+        <input class="jt-search jt-rep-search" type="search" placeholder="חיפוש חברה, משרה או תוכן…" aria-label="חיפוש במיילים">
+        <div class="jt-live"><span class="jt-live-dot" aria-hidden="true"></span><span class="jt-live-text">המצב נבדק מול Gmail בכל פתיחה</span><button type="button" class="jt-refresh">רענון מ-Gmail</button></div>
+      </div>
+    </div>
+    <div class="jt-chips jt-rep-chips" role="group" aria-label="סינון לפי מצב"></div>
+    <div class="jt-tablewrap jt-tall">
+      <table class="jt-table jt-replies" data-source="events" data-row-key="id">
+        <thead><tr>
+          <th data-field="date"><button type="button" data-sort="date">תאריך</button></th>
+          <th data-field="company"><button type="button" data-sort="company">חברה</button></th>
+          <th data-field="role" class="jt-hide-sm"><button type="button" data-sort="role">משרה</button></th>
+          <th data-field="kind"><button type="button" data-sort="kind">סוג</button></th>
+          <th data-field="text"><button type="button" data-sort="text">מה כתבו</button></th>
+          <th data-source="mail_live" data-field="mail_state"><button type="button" data-sort="mail_state">מצב</button></th>
+          <th data-source="applications" data-field="channel"><button type="button" data-sort="channel">מאיפה הוגש</button></th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="archive">
+    <details class="jt-insights jt-archive">
+    <summary class="jt-h jt-sec">ארכיון <span class="jt-arch-count"></span> <span class="jt-note">— שיחות שבהן כתבו שהמשרה לא מתאימה ואתה כבר ענית. לחיצה פותחת</span></summary>
+    <div class="jt-card">
+      <div class="jt-tablewrap jt-tall">
+        <table class="jt-table jt-arch">
+          <thead><tr>
+            <th>תאריך</th><th>חברה</th><th class="jt-hide-sm">משרה</th><th>סוג</th><th>מה כתבו</th><th>מצב</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+    </details>
+  </section>
+
+  <section class="jt-grid" id="todo">
+    <div class="jt-card" id="followup-card">
+      <h2 class="jt-h">פולואפ ופנייה ישירה</h2>
+      <p class="jt-note">הגשות פתוחות שעברו 10 ימים בלי תזוזה, וחברות שאפשר לפנות אליהן ישירות. איפה שיש כתובת — ״ליצור טיוטה״ מכין טיוטת פולואפ ב-Gmail שאתה עובר עליה ושולח בעצמך</p>
+      <div class="jt-tablewrap jt-short">
+        <table class="jt-table jt-followups" data-source="applications" data-row-key="id">
+          <thead><tr>
+            <th data-field="company">חברה</th>
+            <th data-field="role">משרה</th>
+            <th data-field="followup_after">מתי</th>
+            <th data-field="direct_contact">לאן לפנות</th>
+            <th data-field="next_step">פולואפ</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="jt-card" id="goal-card">
+      <h2 class="jt-h">יעד שבועי</h2>
+      <p class="jt-note">הגשות השבוע (מיום ראשון) מול היעד</p>
+      <div class="jt-goal" data-source="weekly goals">
+        <div class="jt-goal-nums"><span class="jt-goal-now dash-skeleton">—</span><span class="jt-goal-of"> מתוך <span class="jt-goal-target">—</span></span></div>
+        <div class="jt-goal-track"><div class="jt-goal-fill"></div></div>
+        <p class="jt-note jt-goal-msg"></p>
+      </div>
+    </div>
+  </section>
+
+  <section class="jt-card" id="prep">
+    <h2 class="jt-h">הכנה לראיונות ולשיחות</h2>
+    <p class="jt-note">נוצר אוטומטית לכל תהליך פעיל: מה השלב, מה צפוי, שאלות לתרגול ומה להכין</p>
+    <div class="jt-prep" data-source="prep"></div>
+  </section>
+
+  <section class="jt-card" id="leads">
+    <div class="jt-tablehead">
+      <div>
+        <h2 class="jt-h">משרות שכדאי להגיש אליהן</h2>
+        <p class="jt-note">נבחרו אוטומטית מהתראות המשרות שלך לפי הפרופיל: AI Solutions Engineer, AI Application Developer, Solutions Architect / Junior Solutions Engineer, Integration Engineer ו-AI Product Manager, ואחריהם ג׳וניור ב-AI, דאטה ו-Python, ונבדקו באתר המשרה. משרות שכבר הגשת אליהן או שנסגרו לא מופיעות. לחיצה על שם המשרה פותחת את המודעה, ועל שם החברה את המייל</p>
+      </div>
+      <div class="jt-chips jt-lead-chips" role="group" aria-label="סינון לפי התאמה"></div>
+    </div>
+    <div class="jt-tablewrap">
+      <table class="jt-table jt-leads" data-source="job_leads" data-row-key="id">
+        <thead><tr>
+          <th>הגשה</th>
+          <th data-field="company">חברה</th>
+          <th data-field="role">משרה</th>
+          <th data-field="fit">התאמה</th>
+          <th data-field="role_desc">מה עושים בתפקיד</th>
+          <th data-field="location" class="jt-hide-sm">מיקום</th>
+          <th data-field="status" class="jt-hide-sm">מצב המשרה</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+
+  <section class="jt-grid" id="charts">
+    <div class="jt-card" id="by-status-card">
+      <h2 class="jt-h">לפי סטטוס</h2>
+      <p class="jt-note">איפה כל ההגשות עומדות היום</p>
+      <div class="jt-bars" id="by-status" data-source="by_status"></div>
+    </div>
+    <div class="jt-card" id="weekly-card">
+      <h2 class="jt-h">הגשות לפי שבוע</h2>
+      <p class="jt-note">שבוע מתחיל ביום ראשון</p>
+      <div class="jt-chart" id="weekly" data-source="weekly"></div>
+    </div>
+  </section>
+
+  <section id="insights">
+    <details class="jt-insights">
+    <summary class="jt-h jt-sec">מה עובד <span class="jt-note">— ניתוח לפי רמת משרה, סוג חברה וזמן עד תשובה. יהיה משמעותי יותר מ-50 הגשות ומעלה; לחיצה פותחת</span></summary>
+    <div class="jt-grid">
+      <div class="jt-card" id="by-level-card">
+        <h2 class="jt-h">לפי רמת משרה</h2>
+        <p class="jt-note">כמה הוגשו וכמה קיבלו תשובה</p>
+        <div class="jt-bars" id="by-level" data-source="by_level"></div>
+      </div>
+      <div class="jt-card" id="by-origin-card">
+        <h2 class="jt-h">ישראליות מול בינלאומיות</h2>
+        <p class="jt-note">עברית לחברות ישראליות, אנגלית לבינלאומיות</p>
+        <div class="jt-bars" id="by-origin" data-source="by_origin"></div>
+      </div>
+      <div class="jt-card" id="speed-card">
+        <h2 class="jt-h">זמן עד תשובה</h2>
+        <p class="jt-note">ממוצע ימים מהגשה ועד תשובה ראשונה, בהגשות שענו להן</p>
+        <div class="jt-kpi-num"><span data-source="response_time" data-field="avg_days" data-row="0" class="dash-skeleton">—</span><span class="jt-pct"> ימים</span></div>
+        <p class="jt-note">מבוסס על <span data-source="response_time" data-field="n" data-row="0">—</span> הגשות שקיבלו תשובה</p>
+      </div>
+    </div>
+    </details>
+  </section>
+
+
+
+  <section class="jt-card" id="visitors" aria-labelledby="vis-h">
+    <div class="jt-tablehead">
+      <div>
+        <h2 class="jt-h" id="vis-h">מי נכנס לאתר</h2>
+        <p class="jt-note">ביקורים של אחרים בעמוד הציבורי, בלי כתובות IP. מכשיר שהתחברת ממנו פעם אחת כבר לא נספר</p>
+      </div>
+      <div class="jt-chips" id="vis-range" role="group" aria-label="טווח זמן"></div>
+    </div>
+    <div id="vis-body"><p class="jt-note">טוען…</p></div>
+  </section>
+
+  <section id="audit">
+    <details class="jt-insights" id="audit-details">
+    <summary class="jt-h jt-sec">בדיקת נתונים <span class="jt-note">— כפילויות אפשריות בגיליון. שום דבר לא נמחק מכאן: מתקנים ידנית בגיליון</span></summary>
+    <div class="jt-card" id="audit-body"><p class="jt-note">פותחים כדי לבדוק.</p></div>
+    </details>
+  </section>
+
+  <section class="jt-card" id="all-applications">
+    <div class="jt-tablehead">
+      <div>
+        <h2 class="jt-h">כל ההגשות</h2>
+        <p class="jt-note">לחיצה על שם החברה פותחת את המייל המקורי</p>
+      </div>
+      <div class="jt-controls">
+        <input class="jt-search jt-app-search" type="search" placeholder="חיפוש חברה או משרה…" aria-label="חיפוש בהגשות">
+        <div class="jt-chips jt-app-chips" role="group" aria-label="סינון לפי סטטוס"></div>
+      </div>
+    </div>
+    <div class="jt-tablewrap">
+      <table class="jt-table jt-apps" data-source="applications" data-row-key="id">
+        <thead><tr>
+          <th data-field="company"><button type="button" data-sort="company">חברה</button></th>
+          <th data-field="role"><button type="button" data-sort="role">משרה</button></th>
+          <th data-field="applied"><button type="button" data-sort="applied">הוגש</button></th>
+          <th data-field="status"><button type="button" data-sort="status">סטטוס</button></th>
+          <th data-field="last_update"><button type="button" data-sort="last_update">עדכון אחרון</button></th>
+          <th data-field="channel" class="jt-hide-sm"><button type="button" data-sort="channel">ערוץ</button></th>
+          <th data-field="level" class="jt-hide-sm"><button type="button" data-sort="level">רמה</button></th>
+          <th data-field="cv_version" class="jt-hide-sm"><button type="button" data-sort="cv_version">קו״ח</button></th>
+          <th data-field="next_step" class="jt-hide-sm"><button type="button" data-sort="next_step">צעד הבא</button></th>
+          <th data-field="note" class="jt-hide-sm"><button type="button" data-sort="note">הערות</button></th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <div class="jt-tip" hidden></div>
+</div>
+
+<style>@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Assistant:wght@400;500;600;700&display=swap');</style>
+<style>
+  .jt { font-family: var(--font-anthropic-sans), system-ui, "Segoe UI", Arial, sans-serif; color: var(--color-fg); display: flex; flex-direction: column; gap: var(--cds-gap-lg); text-align: right; }
+  .jt-head { display: flex; flex-direction: column; gap: var(--cds-gap-xs); }
+  .jt-title { font-family: var(--font-anthropic-serif), Georgia, serif; font-weight: 400; font-size: var(--cds-font-size-title); margin: 0; }
+  .jt-take { margin: 0; color: var(--color-fg-muted); font-size: var(--cds-font-size-body); }
+  .jt-take span { color: var(--color-fg); font-variant-numeric: tabular-nums; }
+
+  .jt-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr)); gap: var(--cds-gap-md); }
+  .jt-kpi { background: var(--color-panel); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); padding: var(--cds-pad-lg); display: flex; flex-direction: column; gap: var(--cds-gap-xs); }
+  .jt-kpi-label { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+  .jt-kpi-num { font-family: var(--font-anthropic-serif), Georgia, serif; font-weight: 400; font-size: var(--cds-font-size-title); font-variant-numeric: tabular-nums; line-height: 1.1; min-height: 1.2em; }
+  .jt-kpi-good .jt-kpi-num { color: var(--color-ok); }
+  .jt-kpi-bad .jt-kpi-num { color: var(--color-bad); }
+  .jt-kpi-warn .jt-kpi-num { color: var(--color-warn); }
+  .jt-error { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 18px; border-radius: var(--cds-radius); background: color-mix(in srgb, var(--color-bad) 12%, transparent); border: 1px solid color-mix(in srgb, var(--color-bad) 35%, transparent); }
+  .jt-audit-group { display: grid; gap: 6px; }
+  .jt-vis-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr)); gap: var(--cds-gap-sm); }
+  .jt-vis-tile { background: var(--glass-strong); border: 1px solid var(--hair); border-radius: var(--radius-md); padding: 12px 14px; }
+  .jt-vis-tile b { display: block; font: 700 1.5rem var(--font); color: var(--navy); font-variant-numeric: tabular-nums; }
+  .jt-vis-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr)); gap: var(--cds-gap-md); margin-top: var(--cds-gap-md); }
+  #vis-body h3 { margin: 0 0 8px; font-size: 1rem; font-weight: 600; }
+  .jt-vis-q { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; max-height: 18rem; overflow: auto; }
+  .jt-vis-q li { padding: 8px 10px; border-radius: 10px; background: var(--glass-strong); border: 1px solid var(--hair); overflow-wrap: anywhere; }
+  .jt-vis-q small { display: block; color: var(--text-muted); }
+  .jt-mine-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin-top: var(--cds-gap-md); }
+  .jt-mine-bar .jt-note { margin: 0; }
+  .jt-forget { white-space: nowrap; }
+  .jt-done { margin: 0; font-weight: 600; color: var(--success); }
+  .jt-forget[data-armed] { background: rgba(181,67,76,.12); color: var(--danger); border-color: var(--danger); }
+  tr.jt-mine td { background: var(--accent-soft); }
+  .jt-audit-group h3 { margin: 8px 0 0; font-size: 1rem; }
+  .jt-audit-group ul { margin: 0; padding-inline-start: 1.2em; display: grid; gap: 4px; }
+  .jt-pct { font-size: 0.6em; margin-inline-start: 2px; color: var(--color-fg-muted); }
+  .jt-kpi-sub { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+
+  .jt-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr)); gap: var(--cds-gap-md); }
+  .jt-card { background: var(--color-panel); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); padding: var(--cds-pad-lg); display: flex; flex-direction: column; gap: var(--cds-gap-sm); min-width: 0; }
+  .jt-h { font-size: var(--cds-font-size-heading); font-weight: var(--cds-font-weight-medium); margin: 0; }
+  .jt-note { margin: 0; font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+
+  .jt-bars { display: flex; flex-direction: column; gap: var(--cds-gap-sm); min-height: 9rem; }
+  .jt-bar { display: grid; grid-template-columns: minmax(6rem, 38%) 1fr auto; align-items: center; gap: var(--cds-gap-sm); font-size: var(--cds-font-size-caption); }
+  .jt-bar-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .jt-bar-track { height: 14px; border-radius: 7px; background: var(--cds-chart-grid); overflow: hidden; display: flex; justify-content: flex-start; }
+  .jt-bar-fill { height: 100%; border-radius: 7px; }
+  .jt-bar-val { font-variant-numeric: tabular-nums; min-width: 3.5em; text-align: left; color: var(--color-fg-muted); }
+  .jt-bar-val b { color: var(--color-fg); font-weight: var(--cds-font-weight-medium); }
+
+  .jt-chart { position: relative; min-height: 200px; }
+  .jt-chart svg { display: block; }
+
+  .jt-tablehead { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: var(--cds-gap-md); }
+  .jt-controls { display: flex; flex-direction: column; gap: var(--cds-gap-sm); align-items: flex-start; min-width: min(100%, 18rem); }
+  .jt-search { width: 100%; box-sizing: border-box; font: inherit; font-size: var(--cds-font-size-body); padding: var(--cds-pad-xs) var(--cds-pad-sm); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); background: var(--color-bg); color: var(--color-fg); }
+  .jt-chips { display: flex; flex-wrap: wrap; gap: var(--cds-gap-xs); }
+  .jt-chip { font: inherit; font-size: var(--cds-font-size-caption); padding: 2px 10px; border-radius: 999px; border: 1px solid var(--color-border-line); background: transparent; color: var(--color-fg-muted); cursor: pointer; }
+  .jt-chip[aria-pressed="true"] { background: var(--color-fg); color: var(--color-bg); border-color: var(--color-fg); }
+
+  .jt-tablewrap { max-height: 32rem; overflow: auto; border-radius: var(--cds-radius); }
+  .jt-short { max-height: 22rem; }
+  .jt-tall { max-height: 40rem; }
+  .jt-live { display: flex; align-items: center; gap: var(--cds-gap-xs); font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); flex-wrap: wrap; }
+  .jt-live-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--color-fg-muted); }
+  .jt-live-dot[data-on="ok"] { background: var(--color-ok); }
+  .jt-live-dot[data-on="busy"] { background: var(--color-warn); }
+  .jt-live-dot[data-on="off"] { background: var(--color-bad); }
+  .jt-refresh { font: inherit; font-size: var(--cds-font-size-caption); padding: 2px 10px; border-radius: 999px; border: 1px solid var(--color-border-line); background: transparent; color: var(--color-fg); cursor: pointer; }
+  .jt-rep-chips { margin-top: calc(-1 * var(--cds-gap-xs)); }
+  .jt-replies { font-size: var(--cds-font-size-body); }
+  .jt-replies td { padding: var(--cds-pad-sm); }
+  .jt-replies td.jt-role { color: var(--color-fg-muted); max-width: 16rem; }
+  .jt-table { width: 100%; border-collapse: collapse; font-size: var(--cds-font-size-caption); font-variant-numeric: tabular-nums; }
+  .jt-table th { position: sticky; top: 0; background: var(--color-panel); text-align: right; font-weight: var(--cds-font-weight-medium); color: var(--color-fg-muted); border-bottom: 1px solid var(--color-border-line); padding: var(--cds-pad-xs) var(--cds-pad-sm); white-space: nowrap; z-index: 1; }
+  .jt-table th button { all: unset; cursor: pointer; }
+  .jt-table th[aria-sort] button::after { content: " ↕"; opacity: .4; }
+  .jt-table th[aria-sort="ascending"] button::after { content: " ↑"; opacity: 1; }
+  .jt-table th[aria-sort="descending"] button::after { content: " ↓"; opacity: 1; }
+  .jt-table td { padding: var(--cds-pad-xs) var(--cds-pad-sm); border-bottom: 1px solid var(--color-border-line); vertical-align: top; }
+  .jt-table tbody tr:hover { background: var(--color-bg); }
+  .jt-table a { color: inherit; text-decoration: underline; text-decoration-color: var(--color-border-line); text-underline-offset: 3px; }
+  .jt-table td.jt-company { font-weight: var(--cds-font-weight-medium); white-space: nowrap; }
+  .jt-table td.jt-date { white-space: nowrap; }
+  .jt-pill { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: var(--cds-font-size-caption); white-space: nowrap; border: 1px solid currentColor; }
+  .jt-st-submitted { color: var(--color-fg-muted); }
+  .jt-st-process { color: var(--color-ok); }
+  .jt-st-interview { color: var(--color-ok); }
+  .jt-st-offer { color: var(--color-ok); font-weight: var(--cds-font-weight-medium); }
+  .jt-st-rejected { color: var(--color-bad); }
+  .jt-ms-unread { color: var(--color-warn); font-weight: var(--cds-font-weight-medium); }
+  .jt-ms-wait { color: var(--color-warn); font-weight: var(--cds-font-weight-medium); background: color-mix(in srgb, var(--color-warn) 12%, transparent); }
+  .jt-ms-read { color: var(--color-fg-muted); }
+  .jt-ms-replied, .jt-ms-done { color: var(--color-ok); }
+  .jt-ms-sent { color: var(--color-fg-muted); border-style: dashed; }
+  .jt-legend { display: flex; flex-wrap: wrap; gap: var(--cds-gap-xs); font-size: var(--cds-font-size-caption); }
+  .jt-act { color: var(--color-warn); font-weight: var(--cds-font-weight-medium); }
+  .jt-table tr.jt-needs td { background: color-mix(in srgb, var(--color-warn) 8%, transparent); }
+  .jt-table a.jt-mail::after { content: " ↗"; opacity: .55; }
+  .jt-replies-card { border-color: color-mix(in srgb, var(--color-warn) 35%, var(--color-border-line)); }
+  .jt-sec { margin-bottom: var(--cds-gap-sm); }
+  #todo { grid-template-columns: 1fr; }
+  #insights { display: flex; flex-direction: column; gap: var(--cds-gap-sm); }
+  .jt-goal { display: flex; flex-direction: column; gap: var(--cds-gap-sm); min-height: 7rem; justify-content: center; }
+  .jt-goal-nums { font-family: var(--font-anthropic-serif), Georgia, serif; font-size: var(--cds-font-size-title); font-variant-numeric: tabular-nums; }
+  .jt-goal-of { font-size: var(--cds-font-size-body); color: var(--color-fg-muted); font-family: var(--font-anthropic-sans), system-ui, sans-serif; }
+  .jt-goal-track { height: 12px; border-radius: 6px; background: var(--cds-chart-grid); overflow: hidden; }
+  .jt-goal-fill { height: 100%; border-radius: 6px; background: var(--color-ok); width: 0; transition: width var(--cds-dur-slow) var(--cds-ease-out); }
+  .jt-prep { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr)); gap: var(--cds-gap-md); min-height: 6rem; }
+  .jt-prep-item { border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); padding: var(--cds-pad-md); display: flex; flex-direction: column; gap: var(--cds-gap-xs); background: var(--color-bg); }
+  .jt-prep-item h3 { margin: 0; font-size: var(--cds-font-size-body); font-weight: var(--cds-font-weight-medium); }
+  .jt-prep-item .jt-prep-role { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+  .jt-prep-item .jt-prep-stage { font-size: var(--cds-font-size-caption); color: var(--color-ok); }
+  .jt-prep-item p { margin: 0; font-size: var(--cds-font-size-caption); line-height: 1.6; }
+  .jt-prep-item details { font-size: var(--cds-font-size-caption); }
+  .jt-prep-item summary { cursor: pointer; font-weight: var(--cds-font-weight-medium); padding: 2px 0; }
+  .jt-prep-item ul { margin: var(--cds-gap-xs) 0 0; padding-inline-start: 1.2em; line-height: 1.6; }
+  .jt-prep-item a { color: inherit; font-size: var(--cds-font-size-caption); }
+  .jt-draft { color: var(--color-warn); font-weight: var(--cds-font-weight-medium); }
+  .jt-desc { min-width: 16rem; max-width: 34rem; line-height: 1.55; }
+  .jt-desc-role { color: var(--color-fg); }
+  .jt-desc-about { color: var(--color-fg-muted); margin-top: 4px; }
+  .jt-desc-why { color: var(--color-ok); margin-top: 4px; }
+  .jt-muted { color: var(--color-fg-muted); }
+  .jt-channel { white-space: nowrap; color: var(--color-fg-muted); }
+  .jt-insights > summary { cursor: pointer; list-style-position: inside; margin-bottom: var(--cds-gap-sm); }
+  .jt-insights > summary .jt-note { font-weight: 400; }
+  .jt-arch-count { font-weight: 600; color: var(--color-fg-muted); }
+  .jt-arch { font-size: var(--cds-font-size-body); }
+  .jt-arch td { padding: var(--cds-pad-sm); }
+  .jt-arch td.jt-role { color: var(--color-fg-muted); max-width: 16rem; }
+  .jt-k-reject { color: var(--color-bad); }
+  .jt-k-progress { color: var(--color-ok); }
+  .jt-empty { color: var(--color-fg-muted); padding: var(--cds-pad-md); text-align: center; }
+
+  .jt-tip { position: absolute; pointer-events: none; background: var(--cds-surface-popover); border: 1px solid var(--cds-border); border-radius: var(--cds-radius); box-shadow: var(--cds-shadow-popover); padding: var(--cds-pad-xs) var(--cds-pad-sm); font-size: var(--cds-font-size-caption); z-index: 5; white-space: nowrap; }
+  .jt-tip .jt-tip-d { color: var(--cds-text-secondary); }
+
+  .jt-fail { display: flex; align-items: center; justify-content: center; gap: var(--cds-gap-xs); color: var(--color-fg-muted); font-size: var(--cds-font-size-caption); min-height: inherit; }
+  .jt-fail::before { content: ""; width: 0.375rem; height: 0.375rem; border-radius: 50%; background: var(--color-bad); }
+
+  [data-dash-source-state=empty] { color: transparent; }
+  [data-dash-source-state=refreshing] { opacity: .5; transition: opacity var(--cds-dur-slow); }
+
+  @media (max-width: 720px) { .jt-hide-sm { display: none; } }
+  @media (prefers-reduced-motion: no-preference) {
+    .jt-bar-fill.jt-anim { animation: jtgrow var(--cds-dur-slow) var(--cds-ease-out) both; transform-origin: right center; }
+    @keyframes jtgrow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
   }
+  /* ===== House style: slate and copper (the public site's palette), light and dark ===== */
+  .jt {
+    --bg: #eceae8; --bg-2: #f6f5f4; --sand: #dedad6; --navy: #2b3445; --navy-deep: #1f2633;
+    --accent: #3a4a66; --accent-soft: rgba(58, 74, 102, 0.10); --gold: #a5694b; --gold-ink: #8a5238;
+    --gold-soft: rgba(165, 105, 75, 0.13); --text-muted: #5d6470; --success: #1a6b40; --danger: #a23a43;
+    --glass-bg: rgba(255, 255, 255, 0.55); --glass-strong: rgba(255, 255, 255, 0.82); --glass-head: rgba(246, 245, 244, 0.95);
+    --glass-border: rgba(255, 255, 255, 0.9); --glass-shadow: 0 12px 40px rgba(43, 52, 69, 0.12);
+    --glass-blur: blur(26px) saturate(160%); --hair: rgba(43, 52, 69, 0.14); --input-line: #8a8f98;
+    --radius-lg: 22px; --radius-md: 14px; --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+    --font-he: 'Assistant', 'Poppins', system-ui, sans-serif; --font: 'Poppins', 'Assistant', system-ui, sans-serif;
+    --jt-c0: #3a4a66; --jt-c1: #6b7f9e; --jt-c2: #a5694b; --jt-c3: #1a6b40; --jt-c4: #7b5ea7; --jt-c-muted: rgba(43, 52, 69, 0.22);
+    /* map the dashboard's own tokens onto the house palette */
+    --color-fg: var(--navy); --color-fg-muted: var(--text-muted); --color-panel: var(--glass-bg);
+    --color-border-line: var(--hair); --color-bg: var(--glass-strong); --color-ok: var(--success);
+    --color-bad: var(--danger); --color-warn: var(--gold-ink); --cds-radius: var(--radius-md);
+    --cds-chart-grid: rgba(43, 52, 69, 0.08); --cds-chart-axis: rgba(43, 52, 69, 0.25); --cds-chart-muted: var(--jt-c-muted);
+    --cds-chart-status-critical: var(--danger);
+    position: relative; isolation: isolate; background: var(--bg); color: var(--navy);
+    font-family: var(--font-he); border-radius: var(--radius-lg); padding: clamp(16px, 3vw, 28px);
+    overflow: hidden; overflow: clip;
+  }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .jt {
+    --bg: #1a1f29; --bg-2: #232a36; --sand: #2d3542; --navy: #ecebe9; --navy-deep: #ffffff; --accent: #b9c6dd;
+    --accent-soft: rgba(185, 198, 221, 0.14); --gold: #d19a7c; --gold-ink: #d19a7c; --gold-soft: rgba(209, 154, 124, 0.16);
+    --text-muted: #a9adb5; --success: #5cc493; --danger: #ec8a91; --glass-bg: rgba(35, 42, 54, 0.6);
+    --glass-strong: rgba(40, 48, 61, 0.85); --glass-head: rgba(35, 42, 54, 0.96); --glass-border: rgba(255, 255, 255, 0.10);
+    --glass-shadow: 0 12px 40px rgba(0, 0, 0, 0.45); --hair: rgba(236, 235, 233, 0.14); --input-line: #6b7484;
+    --jt-c0: #b9c6dd; --jt-c1: #8a9bb8; --jt-c2: #d19a7c; --jt-c3: #5cc493; --jt-c4: #b79be0; --jt-c-muted: rgba(236, 235, 233, 0.25);
+    --cds-chart-grid: rgba(236, 235, 233, 0.08); --cds-chart-axis: rgba(236, 235, 233, 0.25); color-scheme: dark; } }
+  :root[data-theme="dark"] .jt {
+    --bg: #1a1f29; --bg-2: #232a36; --sand: #2d3542; --navy: #ecebe9; --navy-deep: #ffffff; --accent: #b9c6dd;
+    --accent-soft: rgba(185, 198, 221, 0.14); --gold: #d19a7c; --gold-ink: #d19a7c; --gold-soft: rgba(209, 154, 124, 0.16);
+    --text-muted: #a9adb5; --success: #5cc493; --danger: #ec8a91; --glass-bg: rgba(35, 42, 54, 0.6);
+    --glass-strong: rgba(40, 48, 61, 0.85); --glass-head: rgba(35, 42, 54, 0.96); --glass-border: rgba(255, 255, 255, 0.10);
+    --glass-shadow: 0 12px 40px rgba(0, 0, 0, 0.45); --hair: rgba(236, 235, 233, 0.14); --input-line: #6b7484;
+    --jt-c0: #b9c6dd; --jt-c1: #8a9bb8; --jt-c2: #d19a7c; --jt-c3: #5cc493; --jt-c4: #b79be0; --jt-c-muted: rgba(236, 235, 233, 0.25);
+    --cds-chart-grid: rgba(236, 235, 233, 0.08); --cds-chart-axis: rgba(236, 235, 233, 0.25); color-scheme: dark; }
+
+  /* a plain soft shade behind everything (no colour spots) */
+  .jt::before { content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none; background: linear-gradient(180deg, var(--bg-2), var(--bg) 70%); }
+
+  /* header */
+  .jt-head { align-items: center; text-align: center; padding-block: .5rem .25rem; }
+  .jt-title {
+    font-family: var(--font-he); font-weight: 700; font-size: clamp(2rem, 6vw, 2.8rem); line-height: 1.1; letter-spacing: -0.01em;
+    background: linear-gradient(90deg, var(--navy-deep), var(--accent), var(--gold-ink));
+    -webkit-background-clip: text; background-clip: text; color: transparent; text-wrap: balance;
+  }
+  .jt-take { color: var(--text-muted); text-wrap: balance; max-width: 46ch; }
+  .jt-take span { color: var(--navy); font-weight: 600; font-family: var(--font); }
+
+  /* glass cards; inner items use the stronger glass (never glass on glass) */
+  .jt-card, .jt-kpi {
+    background: var(--glass-bg); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border); border-radius: var(--radius-lg);
+    box-shadow: var(--glass-shadow), inset 0 1px 1px rgba(255, 255, 255, 0.6);
+    padding: 22px;
+  }
+  .jt-replies-card { border-color: var(--glass-border); box-shadow: var(--glass-shadow), inset 0 0 0 1px var(--gold-soft), inset 0 1px 1px rgba(255, 255, 255, 0.6); }
+  .jt-prep-item { background: var(--glass-strong); border: 1px solid var(--hair); border-radius: var(--radius-md); padding: 16px; }
+  .jt-h { font-family: var(--font-he); font-weight: 600; font-size: 1.15rem; letter-spacing: -0.01em; color: var(--navy); }
+  .jt-note { font-size: 0.875rem; line-height: 1.45; color: var(--text-muted); }
+
+  /* KPIs: hero numbers */
+  .jt-kpi { padding: 18px 20px; gap: 4px; }
+  .jt-kpi-label { font-weight: 600; font-size: 0.85rem; letter-spacing: 0.01em; color: var(--text-muted); }
+  .jt-kpi-num, .jt-goal-nums { font-family: var(--font); font-weight: 700; letter-spacing: -0.02em; color: var(--navy); line-height: 1.1; }
+  .jt-goal-of { font-family: var(--font-he); }
+
+  /* controls: pills, search, segmented chips, press feedback */
+  .jt-search { min-height: 44px; border-radius: var(--radius-md); background: var(--bg-2); border: 1px solid var(--input-line); color: var(--navy); padding-inline: 14px; }
+  .jt-search::placeholder { color: var(--text-muted); }
+  .jt-chip, .jt-refresh {
+    min-height: 34px; padding: 4px 14px; border-radius: 999px; font-weight: 600;
+    background: var(--glass-strong); border: 1px solid var(--glass-border); color: var(--navy);
+    touch-action: manipulation; transition: transform 100ms ease-out, background-color 150ms ease-out, color 150ms ease-out;
+  }
+  .jt-chip[aria-pressed="true"] { background: var(--navy); color: var(--bg-2); border-color: var(--navy); }
+  .jt-refresh { background: var(--accent-soft); color: var(--accent); border-color: color-mix(in srgb, var(--accent) 35%, transparent); }
+  .jt-chip:active, .jt-refresh:active, .jt-table th button:active { transform: scale(0.97); }
+  .jt-chip:focus-visible, .jt-refresh:focus-visible, .jt-search:focus-visible, .jt a:focus-visible,
+  .jt-table th button:focus-visible, .jt summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  /* tables inside glass: readable sticky header, soft rows */
+  .jt-tablewrap { border-radius: var(--radius-md); background: var(--glass-strong); border: 1px solid var(--hair); }
+  .jt-table th { background: var(--glass-head); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); color: var(--text-muted); font-weight: 600; }
+  .jt-table td { border-bottom-color: var(--hair); }
+  .jt-table tbody tr { transition: background-color 150ms ease-out; }
+  .jt-table tbody tr:hover { background: var(--accent-soft); }
+  .jt-table a { color: var(--accent); text-decoration-color: color-mix(in srgb, var(--accent) 35%, transparent); }
+  .jt-table tr.jt-needs td { background: var(--gold-soft); }
+  .jt-pill { border: 0; padding: 3px 10px; font-weight: 600; background: var(--accent-soft); }
+  .jt-st-submitted, .jt-ms-read, .jt-ms-sent { background: color-mix(in srgb, var(--text-muted) 12%, transparent); }
+  .jt-st-process, .jt-st-interview, .jt-st-offer, .jt-ms-replied, .jt-ms-done { background: color-mix(in srgb, var(--success) 13%, transparent); }
+  .jt-st-rejected { background: color-mix(in srgb, var(--danger) 12%, transparent); }
+  .jt-ms-unread, .jt-ms-wait { background: var(--gold-soft); color: var(--gold-ink); }
+  .jt-ms-sent { border: 1px dashed currentColor; }
+  .jt-draft, .jt-act { color: var(--gold-ink); }
+
+  /* bars and goal */
+  .jt-bar-track, .jt-goal-track { background: var(--cds-chart-grid); }
+  .jt-goal-fill { background: linear-gradient(90deg, var(--accent), var(--gold)); transition: width 420ms var(--ease-out); }
+  .jt-tip { background: var(--glass-head); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur); border: 1px solid var(--glass-border); border-radius: 12px; box-shadow: var(--glass-shadow); color: var(--navy); }
+  .jt-tip .jt-tip-d { color: var(--text-muted); }
+  .jt-num, .jt-table td.jt-date, .jt-bar-val { font-family: var(--font); }
+
+  /* motion: cards rise in, critically damped (no overshoot) */
+  @media (prefers-reduced-motion: no-preference) {
+    .jt-card, .jt-kpi { animation: jtrise 320ms var(--ease-out) both; }
+    @keyframes jtrise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .jt-chip:active, .jt-refresh:active, .jt-table th button:active { transform: none; }
+  }
+  @media (prefers-reduced-transparency: reduce) {
+    .jt-card, .jt-kpi, .jt-tip, .jt-table th { background: var(--bg-2); -webkit-backdrop-filter: none; backdrop-filter: none; }
+  }
+  @media (prefers-contrast: more) {
+    .jt-card, .jt-kpi { background: var(--bg-2); border: 1px solid var(--navy); }
+    .jt-note, .jt-take, .jt-kpi-label { color: var(--navy); }
+  }
+  @media (max-width: 640px) { .jt-card, .jt-kpi { padding: 16px; } .jt { border-radius: 0; } }
+  /* CV upgrade card */
+  .jt-cv { border-color: var(--glass-border); }
+  .jt-cv-form { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 16px; align-items: end; }
+  .jt-field { display: flex; flex-direction: column; gap: 6px; min-width: 0; font-size: 0.875rem; font-weight: 600; color: var(--text-muted); }
+  .jt-field-wide { grid-column: 1 / -1; }
+  .jt-input { font: inherit; font-weight: 400; font-size: 1rem; color: var(--navy); background: var(--bg-2); border: 1px solid var(--input-line); border-radius: var(--radius-md); padding: 10px 14px; min-height: 44px; box-sizing: border-box; width: 100%; }
+  textarea.jt-input { resize: vertical; line-height: 1.5; }
+  .jt-input::placeholder { color: var(--text-muted); }
+  .jt-input:focus-visible, .jt-primary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .jt-cv-out { font-size: 0.9rem; color: var(--text-muted); }
+  .jt-cv-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+  .jt-primary { font: inherit; font-weight: 600; font-size: 1rem; min-height: 48px; padding: 0 22px; border: 0; border-radius: var(--radius-md); color: #fff; cursor: pointer;
+    background: linear-gradient(90deg, var(--accent), var(--navy-deep)); box-shadow: 0 8px 20px rgba(43, 52, 69, 0.24);
+    touch-action: manipulation; transition: transform 100ms ease-out, box-shadow 150ms ease-out; }
+  .jt-primary:hover { box-shadow: 0 10px 24px rgba(27, 42, 74, 0.34); }
+  .jt-primary:active { transform: scale(0.97); }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .jt-primary { color: #1a1f29; background: linear-gradient(90deg, var(--accent), var(--gold)); } }
+  :root[data-theme="dark"] .jt-primary { color: #1a1f29; background: linear-gradient(90deg, var(--accent), var(--gold)); }
+  @media (prefers-reduced-motion: reduce) { .jt-primary:active { transform: none; } }
+  @media (max-width: 640px) { .jt-cv-form { grid-template-columns: 1fr; } }
+  .jt-secondary, .jt-apply { font: inherit; font-weight: 600; border-radius: var(--radius-md); cursor: pointer; touch-action: manipulation;
+    background: var(--accent-soft); color: var(--accent); border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+    transition: transform 100ms ease-out, background-color 150ms ease-out; }
+  .jt-secondary { min-height: 48px; padding: 0 20px; font-size: 1rem; }
+  .jt-apply { min-height: 34px; padding: 2px 14px; font-size: 0.9rem; white-space: nowrap; }
+  .jt-secondary:active, .jt-apply:active { transform: scale(0.97); }
+  .jt-secondary:focus-visible, .jt-apply:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  @media (prefers-reduced-motion: reduce) { .jt-secondary:active, .jt-apply:active { transform: none; } }
+  .jt-sheet { position: sticky; z-index: 50; bottom: max(16px, env(safe-area-inset-bottom, 0px)); margin-inline: auto;
+    width: min(640px, 100%); box-sizing: border-box; display: grid; gap: 10px; padding: 18px 20px; direction: rtl; text-align: right;
+    background: var(--glass-head); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border); border-radius: var(--radius-lg); box-shadow: 0 20px 60px rgba(27, 42, 74, 0.28); }
+  .jt-sheet[hidden] { display: none; }
+  .jt-sheet .jt-h { margin: 0; }
+  @media (prefers-reduced-motion: no-preference) { .jt-sheet:not([hidden]) { animation: jtsheet 280ms var(--ease-out) both; }
+    @keyframes jtsheet { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } } }
+  @media (prefers-reduced-transparency: reduce) { .jt-sheet { background: var(--bg-2); -webkit-backdrop-filter: none; backdrop-filter: none; } }
+</style>
+
+<script src="/js/app-2.js"></script>
+
+<script src="/js/app-3.js"></script>
+
+<script src="/js/app-4.js"></script>
+<script src="/js/app-5.js"></script>
+
+<p class="jt-updated"></p>
+<script src="/js/app-6.js"></script>
+
+<!-- ===== Job Feed: updates collected by a Google Apps Script every hour (no Claude usage) ===== -->
+<style>
+.jt-feed .jt-feed-list { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.jt-feed .jt-feed-list li { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 10px 12px; border-radius: 12px; background: var(--glass-strong, var(--color-bg)); border: 1px solid var(--hair, var(--color-border-line)); }
+.jt-feed .jt-feed-kind { font-size: .78rem; font-weight: 700; padding: 2px 10px; border-radius: 999px; white-space: nowrap; background: var(--accent-soft); color: var(--accent); }
+.jt-feed .k-bad { background: color-mix(in srgb, var(--color-bad) 14%, transparent); color: var(--color-bad); }
+.jt-feed .k-good { background: color-mix(in srgb, var(--color-ok) 16%, transparent); color: var(--color-ok); }
+.jt-feed .k-warn { background: var(--gold-soft); color: var(--gold-ink); }
+.jt-feed .jt-feed-main { min-width: 0; }
+.jt-feed .jt-feed-main b { display: block; overflow-wrap: anywhere; }
+.jt-feed .jt-feed-main small { color: var(--color-fg-muted); overflow-wrap: anywhere; }
+.jt-feed .jt-feed-new { font-size: .72rem; font-weight: 700; color: var(--gold-ink); white-space: nowrap; }
+.jt-feed .jt-feed-head { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: baseline; justify-content: space-between; }
+.jt-feed h3 { margin: 16px 0 8px; font-size: 1rem; }
+.jt-feed a { color: var(--accent); text-decoration-color: color-mix(in srgb, var(--accent) 35%, transparent); }
+@media (max-width: 520px) { .jt-feed .jt-feed-list li { grid-template-columns: minmax(0, 1fr); } }
+</style>
+<script src="/js/app-7.js"></script>
+
+
+<!-- ===== Job agent: floating chat bubble (Gemini through the Worker) ===== -->
+<style>
+.ja { --ja-bg: #f6f5f4; --ja-panel: rgba(255,255,255,.92); --ja-strong: #ffffff; --ja-navy: #2b3445; --ja-ink: #2b3445; --ja-muted: #5d6470; --ja-accent: #3a4a66; --ja-accent-soft: rgba(58,74,102,.10); --ja-gold: #a5694b; --ja-gold-soft: rgba(165,105,75,.14); --ja-hair: rgba(43,52,69,.14); --ja-ok: #1a6b40; --ja-bad: #a23a43; --ja-shadow: 0 18px 50px rgba(43,52,69,.22); --ja-on-navy: #f6f5f4;
+  font-family: "Assistant", "Segoe UI", Arial, sans-serif; color: var(--ja-ink); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .ja { --ja-bg: #1a1f29; --ja-panel: rgba(35,42,54,.96); --ja-strong: #232a36; --ja-navy: #ecebe9; --ja-ink: #ecebe9; --ja-muted: #a9adb5; --ja-accent: #b9c6dd; --ja-accent-soft: rgba(185,198,221,.14); --ja-gold: #d19a7c; --ja-gold-soft: rgba(209,154,124,.16); --ja-hair: rgba(236,235,233,.16); --ja-ok: #5cc493; --ja-bad: #ec8a91; --ja-shadow: 0 18px 50px rgba(0,0,0,.55); --ja-on-navy: #1a1f29; } }
+:root[data-theme="dark"] .ja { --ja-bg: #1a1f29; --ja-panel: rgba(35,42,54,.96); --ja-strong: #232a36; --ja-navy: #ecebe9; --ja-ink: #ecebe9; --ja-muted: #a9adb5; --ja-accent: #b9c6dd; --ja-accent-soft: rgba(185,198,221,.14); --ja-gold: #d19a7c; --ja-gold-soft: rgba(209,154,124,.16); --ja-hair: rgba(236,235,233,.16); --ja-ok: #5cc493; --ja-bad: #ec8a91; --ja-shadow: 0 18px 50px rgba(0,0,0,.55); --ja-on-navy: #1a1f29; }
+.ja * { box-sizing: border-box; }
+.ja [hidden] { display: none !important; }
+.ja-fab { position: fixed; z-index: 2147483000; right: max(20px, env(safe-area-inset-right, 0px)); bottom: max(20px, env(safe-area-inset-bottom, 0px)); width: 60px; height: 60px; border-radius: 50%; border: 0; cursor: pointer;
+  background: linear-gradient(145deg, var(--ja-accent), var(--ja-navy)); color: var(--ja-on-navy); box-shadow: var(--ja-shadow); display: grid; place-items: center; transition: transform .2s cubic-bezier(.22,1,.36,1); }
+.ja-fab:hover { transform: scale(1.06); } .ja-fab:active { transform: scale(.96); }
+.ja-fab svg { width: 28px; height: 28px; }
+.ja-fab .ja-badge { position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: var(--ja-gold); border: 2px solid var(--ja-bg); }
+.ja-panel { position: fixed; z-index: 2147483001; right: max(20px, env(safe-area-inset-right, 0px)); bottom: calc(max(20px, env(safe-area-inset-bottom, 0px)) + 72px);
+  width: min(410px, calc(100vw - 24px)); height: min(640px, calc(100vh - 120px)); display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto; overflow: hidden;
+  background: var(--ja-panel); -webkit-backdrop-filter: blur(24px) saturate(160%); backdrop-filter: blur(24px) saturate(160%); border: 1px solid var(--ja-hair); border-radius: 22px; box-shadow: var(--ja-shadow);
+  transform-origin: bottom right; animation: ja-in .22s cubic-bezier(.22,1,.36,1); }
+@media (max-width: 600px) {
+  /* phone: the panel takes the whole visible screen and follows the keyboard (height set from visualViewport) */
+  .ja-panel { left: 0; right: 0; top: var(--ja-top, 0px); bottom: auto; width: 100%; height: var(--ja-h, 100dvh); border-radius: 0; border: 0; padding-top: env(safe-area-inset-top, 0px); }
+  .ja.is-open .ja-fab { display: none; }
+  .ja-foot { padding-bottom: max(10px, env(safe-area-inset-bottom, 0px)); }
+  .ja textarea, .ja select, .ja input[type="text"] { font-size: 16px; } /* no auto-zoom on iOS */
 }
-load();
-</script>
+@keyframes ja-in { from { opacity: 0; transform: translateY(10px) scale(.97); } }
+@media (prefers-reduced-motion: reduce) { .ja-panel { animation: none; } .ja-fab { transition: none; } }
+.ja-head { display: flex; align-items: center; gap: 10px; padding: 14px 16px 10px; border-bottom: 1px solid var(--ja-hair); }
+.ja-head h3 { margin: 0; font-size: 1.02rem; font-weight: 700; flex: 1; }
+.ja-head small { display: block; font-weight: 400; font-size: .78rem; color: var(--ja-muted); }
+.ja-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--ja-muted); flex: none; }
+.ja-dot.on { background: var(--ja-ok); } .ja-dot.off { background: var(--ja-bad); } .ja-dot.wait { background: var(--ja-gold); }
+.ja-ib { border: 0; background: transparent; color: var(--ja-muted); cursor: pointer; width: 34px; height: 34px; border-radius: 10px; font: inherit; font-size: 1.05rem; display: grid; place-items: center; }
+.ja-ib:hover { background: var(--ja-accent-soft); color: var(--ja-ink); }
+.ja-ib:focus-visible, .ja button:focus-visible, .ja textarea:focus-visible, .ja select:focus-visible, .ja input:focus-visible { outline: 2px solid var(--ja-accent); outline-offset: 2px; }
+.ja-tabs { display: flex; gap: 6px; padding: 8px 16px; }
+.ja-tab { border: 1px solid var(--ja-hair); background: transparent; color: var(--ja-ink); border-radius: 999px; padding: 4px 12px; font: inherit; font-size: .86rem; cursor: pointer; }
+.ja-tab[aria-pressed="true"] { background: var(--ja-navy); color: var(--ja-on-navy); border-color: var(--ja-navy); }
+.ja-body { overflow-y: auto; padding: 8px 14px 12px; display: flex; flex-direction: column; gap: 10px; min-height: 0; }
+.ja-msg { max-width: 90%; padding: 10px 13px; border-radius: 16px; white-space: pre-wrap; overflow-wrap: anywhere; font-size: .94rem; line-height: 1.5; min-width: 0; }
+.ja-msg.me { align-self: flex-start; background: var(--ja-navy); color: var(--ja-on-navy); border-end-start-radius: 5px; }
+.ja-msg.ai { align-self: flex-end; background: var(--ja-strong); border: 1px solid var(--ja-hair); border-end-end-radius: 5px; }
+.ja-msg.err { align-self: stretch; max-width: none; background: color-mix(in srgb, var(--ja-bad) 12%, transparent); border: 1px solid color-mix(in srgb, var(--ja-bad) 35%, transparent); }
+.ja-meta { display: block; margin-top: 4px; font-size: .72rem; color: var(--ja-muted); }
+.ja-msg.me .ja-meta { color: inherit; opacity: .7; }
+.ja-note { display: block; margin-top: 4px; font-size: .78rem; color: var(--ja-muted); }
+.ja-typing { display: inline-flex; gap: 4px; } .ja-typing i { width: 6px; height: 6px; border-radius: 50%; background: var(--ja-muted); animation: ja-b 1s infinite; } .ja-typing i:nth-child(2) { animation-delay: .15s; } .ja-typing i:nth-child(3) { animation-delay: .3s; }
+@keyframes ja-b { 50% { opacity: .25; transform: translateY(-2px); } }
+.ja-welcome { color: var(--ja-muted); font-size: .9rem; }
+.ja-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.ja-chip { border: 1px solid var(--ja-hair); background: var(--ja-strong); color: var(--ja-ink); border-radius: 999px; padding: 5px 11px; font: inherit; font-size: .84rem; cursor: pointer; }
+.ja-chip:hover { background: var(--ja-accent-soft); }
+.ja-card { border: 1px solid var(--ja-hair); background: var(--ja-bg); border-radius: 14px; padding: 10px; display: grid; gap: 6px; margin-top: 8px; white-space: normal; }
+.ja-card b { font-size: .9rem; }
+.ja-card dl { margin: 0; display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 2px 8px; font-size: .85rem; }
+.ja-card dt { color: var(--ja-muted); } .ja-card dd { margin: 0; overflow-wrap: anywhere; }
+.ja-card input, .ja-card textarea { width: 100%; }
+.ja-row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.ja-btn { min-height: 36px; padding: 0 14px; border-radius: 999px; font: inherit; font-weight: 600; font-size: .88rem; cursor: pointer; border: 1px solid transparent; background: var(--ja-navy); color: var(--ja-on-navy); }
+.ja-btn.sec { background: var(--ja-accent-soft); color: var(--ja-accent); border-color: color-mix(in srgb, var(--ja-accent) 30%, transparent); }
+.ja-btn:disabled { opacity: .5; cursor: default; }
+.ja-hint { font-size: .8rem; color: var(--ja-muted); }
+.ja-foot { border-top: 1px solid var(--ja-hair); padding: 10px 12px; display: grid; gap: 8px; }
+.ja-practice { display: grid; gap: 6px; padding: 8px 10px; border-radius: 12px; background: var(--ja-gold-soft); }
+.ja-practice select { width: 100%; }
+.ja-ask { display: flex; gap: 6px; align-items: flex-end; }
+.ja textarea, .ja select, .ja input[type="text"] { font: inherit; font-size: .92rem; color: var(--ja-ink); background: var(--ja-strong); border: 1px solid var(--ja-hair); border-radius: 12px; padding: 8px 10px; min-width: 0; }
+.ja-ask textarea { flex: 1; resize: none; min-height: 42px; max-height: 120px; }
+.ja-send { width: 42px; height: 42px; border-radius: 50%; border: 0; background: var(--ja-navy); color: var(--ja-on-navy); cursor: pointer; display: grid; place-items: center; flex: none; }
+.ja-send:disabled { opacity: .45; cursor: default; }
+.ja-mic { width: 42px; height: 42px; border-radius: 50%; border: 1px solid var(--ja-hair); background: var(--ja-strong); color: var(--ja-ink); cursor: pointer; display: grid; place-items: center; flex: none; }
+.ja-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.ja-settings { display: grid; gap: 14px; }
+.ja-settings h4 { margin: 0 0 6px; font-size: .92rem; }
+.ja-mem { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.ja-mem li { display: flex; justify-content: space-between; gap: 6px; padding: 5px 8px; border-radius: 10px; background: var(--ja-strong); border: 1px solid var(--ja-hair); font-size: .86rem; }
+</style>
+<script src="/js/app-8.js"></script>
+
+<script src="/js/app-9.js"></script>
 </body>
 </html>

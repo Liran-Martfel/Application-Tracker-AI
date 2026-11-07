@@ -35,9 +35,9 @@ In the Apps Script editor: **Project Settings** (gear icon) → **Script Propert
 | The chat shows passages and "demo mode" | No key on the Worker | Step 2, then deploy |
 | "Couldn't get an answer right now" | Gemini refused the call | `npx wrangler tail` while asking a question shows the status: 400 = bad key, 403 = key's project blocked, 404 = model renamed, 429 = quota |
 | 400 `API_KEY_INVALID` | The key was deleted or mistyped | Make a new key, step 2 again |
-| 429 `RESOURCE_EXHAUSTED` | Daily quota used up | Wait for the reset, or use a key from another project |
+| 429 `RESOURCE_EXHAUSTED` | Daily quota used up | The chat switches to the free Workers AI backup model by itself (`[ai]` in wrangler.toml); the quota resets the next day |
 | Answers cut off mid-sentence | Output limit too low for a model that "thinks" | Keep `maxOutputTokens` at 4096 or more |
-| Answers in the wrong direction (RTL/LTR) | The page decides direction per bubble from its language | Keep the `bubble()` function in `public/index.html` |
+| Answers in the wrong direction (RTL/LTR) | The page decides direction per bubble from its language | Keep the `bubble()` function in `public/js/site-1.js` |
 
 ## 6. Testing without a real key
-`test/site.test.cjs` starts a fake Gemini on port 8789 and points the local site at it with `GEMINI_BASE=http://127.0.0.1:8789` in `.dev.vars`. That file is local only: never commit it, and delete it after testing.
+`test/mock-server.mjs` is a fake Gemini (and a fake Apps Script). Run it and start the local site with `--var GEMINI_BASE:http://127.0.0.1:8788` (the full command is in `references/site-guide.md`, step 5). Nothing is written to disk, so there is no secrets file to delete.
