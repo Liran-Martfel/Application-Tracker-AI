@@ -1,0 +1,127 @@
+<title>{{DASHBOARD_TITLE}}</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Assistant:wght@400;500;600;700;800&family=Poppins:wght@400;500;600;700&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+<style>
+/* Page shell: the job tracker (.jt) on its own page, with the small set of tokens the Dashboard type used to supply. */
+:root {
+  --page-bg: #f4efe6;
+  --cds-rem-scale: 1;
+  --cds-font-size-caption: .75rem; --cds-font-size-body: .875rem; --cds-font-size-heading: .9375rem; --cds-font-size-title: 1.375rem;
+  --cds-font-weight-medium: 500;
+  --cds-gap-xs: .5rem; --cds-gap-sm: .75rem; --cds-gap-md: 1rem; --cds-gap-lg: 1.75rem;
+  --cds-pad-xs: .25rem; --cds-pad-sm: .375rem; --cds-pad-md: .5rem; --cds-pad-lg: .75rem;
+  --cds-radius: .25rem; --cds-dur-slow: .45s; --cds-ease-out: cubic-bezier(.165,.84,.44,1);
+  --cds-chart-grid: rgba(27,42,74,.10); --cds-chart-axis: rgba(27,42,74,.35); --cds-chart-muted: #9aa0ad; --cds-chart-status-critical: #c2414b;
+  --cds-text-secondary: #5f6678; --cds-surface-popover: #ffffff; --cds-shadow-popover: 0 8px 24px #0000001f, 0 2px 6px #00000014; --cds-border: rgba(27,42,74,.12);
+  --font-anthropic-sans: "Assistant", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-anthropic-serif: "Assistant", ui-serif, Georgia, serif;
+  --color-fg: #1b2a4a; --color-fg-muted: #5f6678; --color-panel: rgba(255,252,246,.55); --color-bg: rgba(255,252,246,.78); --color-border-line: rgba(27,42,74,.10);
+  --color-ok: #1f7a4a; --color-bad: #b5434c; --color-warn: #8a6420;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --page-bg: #0e1626; --cds-chart-grid: rgba(243,236,223,.12); --cds-chart-axis: rgba(243,236,223,.35); --cds-chart-muted: #6f7686; --cds-text-secondary: #b7b0a2; --cds-surface-popover: #182642; --cds-shadow-popover: 0 8px 24px #00000052, 0 2px 6px #0003; --cds-border: rgba(243,236,223,.14);
+  --color-fg: #f3ecdf; --color-fg-muted: #b7b0a2; --color-panel: rgba(20,32,56,.55); --color-bg: rgba(24,38,66,.78); --color-border-line: rgba(243,236,223,.12); --color-ok: #5cc493; --color-bad: #ec8a91; --color-warn: #e2bd76;
+  color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --page-bg: #0e1626; --cds-chart-grid: rgba(243,236,223,.12); --cds-chart-axis: rgba(243,236,223,.35); --cds-chart-muted: #6f7686; --cds-text-secondary: #b7b0a2; --cds-surface-popover: #182642; --cds-shadow-popover: 0 8px 24px #00000052, 0 2px 6px #0003; --cds-border: rgba(243,236,223,.14);
+  --color-fg: #f3ecdf; --color-fg-muted: #b7b0a2; --color-panel: rgba(20,32,56,.55); --color-bg: rgba(24,38,66,.78); --color-border-line: rgba(243,236,223,.12); --color-ok: #5cc493; --color-bad: #ec8a91; --color-warn: #e2bd76;
+  color-scheme: dark; }
+html, body { background: var(--page-bg); }
+body { margin: 0; color: var(--color-fg); font-family: var(--font-anthropic-sans); font-size: var(--cds-font-size-body); line-height: 1.5; padding-block: 16px 96px; padding-left: max(12px, env(safe-area-inset-left, 0px)); padding-right: max(12px, env(safe-area-inset-right, 0px)); }
+.dash-skeleton { color: transparent !important; background: linear-gradient(90deg, var(--color-border-line), transparent, var(--color-border-line)); background-size: 200% 100%; border-radius: 6px; animation: dash-sk 1.4s linear infinite; min-height: 1em; }
+@keyframes dash-sk { to { background-position: -200% 0; } }
+@media (prefers-reduced-motion: reduce) { .dash-skeleton { animation: none; } }
+table { border-collapse: collapse; }
+.jt-tablewrap { overflow-x: auto; }
+.jt-table { width: 100%; }
+.jt-table th, .jt-table td { text-align: start; padding: 8px 10px; vertical-align: top; }
+.jt-table th button { all: unset; cursor: pointer; font-weight: 600; }
+.jt-table td { border-top: 1px solid var(--color-border-line); }
+.jt-table a { color: inherit; }
+.jt-updated { text-align: center; color: var(--color-fg-muted); font-size: .8rem; margin: 18px 0 0; }
+</style>
+<script>
+/* A small stand-in for the Dashboard type's `dash` API, reading this artifact's own store:
+   datasets/<id> = { source: {kind:"file", url:"/_blob/<id>"} }  or  { source: {kind:"query", connector:"Gmail", tool, args} } */
+window.dash = (() => {
+  const state = {};            // id -> {status, data, refreshing}
+  const loaders = {}, calcs = {}, listeners = [];
+  const docs = {};             // dataset docs as stored
+  let scheduled = false, mcp = null;
+  const notify = () => { if (scheduled) return; scheduled = true; queueMicrotask(() => { scheduled = false; recompute(); listeners.forEach((f) => { try { f(); } catch (e) { console.error(e); } }); stamp(); }); };
+  const set = (id, v) => { state[id] = { ...(state[id] || {}), ...v }; notify(); };
+  function recompute() {
+    for (const [id, c] of Object.entries(calcs)) {
+      const ins = c.inputs.map((i) => state[i] || { status: 'loading' });
+      if (ins.every((s) => s.status === 'ok')) {
+        try { state[id] = { status: 'ok', data: c.fn(...ins.map((s) => s.data || [])) || [] }; } catch (e) { console.error(id, e); state[id] = { status: 'error', data: [] }; }
+      } else if (ins.some((s) => s.status === 'error')) state[id] = { status: 'error', data: [] };
+      else if (ins.some((s) => s.status === 'connect')) state[id] = { status: 'connect', data: [] };
+      else state[id] = { status: 'loading', data: [] };
+    }
+  }
+  function stamp() {
+    const el = document.querySelector('.jt-updated'); if (!el) return;
+    const t = Object.values(docs).map((d) => d?.updated?.at).filter(Boolean).sort().pop();
+    el.textContent = t ? 'הנתונים עודכנו לאחרונה ' + new Date(t).toLocaleString('he-IL', { dateStyle: 'short', timeStyle: 'short' }) : '';
+  }
+  const rowsOf = (j) => Array.isArray(j) ? j : (j && (j.rows || j.data)) || [];
+  async function loadFile(id, d) {
+    try { const r = await fetch(d.source.url); if (!r.ok) throw new Error(r.status); set(id, { status: 'ok', data: rowsOf(await r.json()), refreshing: false }); }
+    catch (e) { console.error('dataset', id, e); set(id, { status: 'error', data: [], refreshing: false }); }
+  }
+  const unwatch = {};
+  function loadQuery(id, d, force) {
+    if (!mcp) { set(id, { status: 'connect', data: [] }); return; }
+    const src = d.source; const server = src.connector || 'Gmail';
+    const handle = async (result) => {
+      const L = loaders[id];
+      try {
+        const answer = result?.payload ?? result;
+        const call = async (tool, a) => { const r = await mcp.callTool(server, tool, a, { cache: false }); return r?.payload ?? r; };
+        const out = L ? await L.fn({ answer, call, args: src.args }) : { rows: rowsOf(answer) };
+        set(id, { status: 'ok', data: out.rows || [], refreshing: false });
+      } catch (e) { console.error('query', id, e); set(id, { status: 'error', data: [], refreshing: false }); }
+    };
+    if (unwatch[id]) { try { unwatch[id](); } catch {} }
+    if (!state[id] || state[id].status !== 'ok') set(id, { status: 'loading', data: [] }); else set(id, { refreshing: true });
+    try {
+      unwatch[id] = mcp.watchTool(server, src.tool, src.args, (ev) => {
+        if (ev.type === 'data') handle(ev.result);
+        else { const c = ev.error?.code; set(id, { status: (c === 'needs_reauth' || c === 'server_not_connected' || c === 'not_granted' || c === 'consent_required') ? 'connect' : 'error', data: state[id]?.data || [], refreshing: false }); }
+      }, { cache: { staleTime: force ? 0 : 60000 } });
+    } catch (e) { set(id, { status: 'error', data: [] }); }
+  }
+  function load(id, d, force) {
+    docs[id] = d;
+    if (!d?.source) return;
+    if (d.source.kind === 'file') { if (state[id]?.status === 'ok') set(id, { refreshing: true }); loadFile(id, d); }
+    else if (d.source.kind === 'query') loadQuery(id, d, force);
+  }
+  (async () => {
+    const C = window.claude;
+    if (!C?.use) { console.warn('no claude runtime'); return; }
+    const [db, m] = await Promise.all([C.use('db'), C.use('mcp')]);
+    mcp = m;
+    if (!db) { ['applications', 'events', 'prep', 'job_leads', 'goals', 'gmail_unread', 'gmail_sent'].forEach((id) => set(id, { status: 'error', data: [] })); return; }
+    const seen = {};
+    db.collection('datasets').onSnapshot((qs) => {
+      qs.docs.forEach((s) => {
+        const d = s.data(); const key = JSON.stringify(d?.source || null);
+        if (seen[s.id] === key) { docs[s.id] = d; return; }
+        seen[s.id] = key; load(s.id, d);
+      });
+      stamp();
+    }, (e) => console.error('datasets', e));
+  })();
+  return {
+    loader: (id, o) => { loaders[id] = o; },
+    calc: (id, o) => { calcs[id] = { inputs: o.inputs || [], fn: o.fn }; },
+    data: (id) => state[id] || { status: 'loading', data: [] },
+    onData: (f) => { listeners.push(f); queueMicrotask(f); },
+    refresh: (id) => { if (docs[id]) load(id, docs[id], true); },
+    colors: ['var(--jt-c0)', 'var(--jt-c1)', 'var(--jt-c2)', 'var(--jt-c3)', 'var(--jt-c4)']
+  };
+})();
+</script>

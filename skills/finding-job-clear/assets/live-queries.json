@@ -1,0 +1,30 @@
+{
+ "gmail_unread": {
+  "title": "מיילים שלא נקראו (חי)",
+  "description": "בדיקה חיה מול Gmail בכל פתיחה: אילו מיילים מהחברות שהגשת אליהן עדיין לא נקראו. קורא את תיבת Gmail שלך (חיפוש is:unread לפי שולחי ההגשות).",
+  "source": {
+   "kind": "query",
+   "connector": "Gmail",
+   "tool": "search_threads",
+   "args": {
+    "query": "is:unread after:{{START_DATE}} ({{SENDER_FILTER}})",
+    "pageSize": 50,
+    "view": "THREAD_VIEW_METADATA_ONLY"
+   }
+  }
+ },
+ "gmail_sent": {
+  "title": "תגובות ששלחת (חי)",
+  "description": "בדיקה חיה מול Gmail בכל פתיחה: מיילים ששלחת לחברות ולמגייסים, כדי לזהות שעניתי. קורא את תיקיית הנשלחים ב-Gmail שלך.",
+  "source": {
+   "kind": "query",
+   "connector": "Gmail",
+   "tool": "search_threads",
+   "args": {
+    "query": "in:sent after:{{START_DATE}} ({{RECIPIENT_FILTER}})",
+    "pageSize": 50,
+    "view": "THREAD_VIEW_METADATA_ONLY"
+   }
+  }
+ }
+}

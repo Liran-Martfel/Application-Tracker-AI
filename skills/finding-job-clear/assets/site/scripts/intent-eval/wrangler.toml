@@ -1,0 +1,8 @@
+# Offline check of the intent classifier against the REAL embedding model (Workers AI), never deployed.
+# Run from website/: npx wrangler dev -c scripts/intent-eval/wrangler.toml --port 8891, then node scripts/intent-eval/run.mjs
+name = "intent-eval-local"
+main = "worker.js"
+compatibility_date = "2025-09-01"
+workers_dev = false   # local only: even an accidental deploy gets no public address
+[ai]
+binding = "AI"

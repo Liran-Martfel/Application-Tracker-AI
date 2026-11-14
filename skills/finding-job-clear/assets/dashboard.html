@@ -1,0 +1,1367 @@
+<div class="jt" dir="rtl" lang="he">
+  <header class="jt-head" id="top">
+    <h1 class="jt-title">מעקב הגשות קורות חיים</h1>
+    <p class="jt-take">
+      <span data-source="kpis" data-field="total" data-row="0" class="dash-skeleton">—</span> הגשות {{HISTORY_LABEL}} ·
+      <span data-source="kpis" data-field="active" data-row="0" class="dash-skeleton">—</span> עדיין פתוחות ·
+      <span data-source="kpis" data-field="in_process" data-row="0" class="dash-skeleton">—</span> בתהליך מתקדם
+    </p>
+  </header>
+
+  <section class="jt-card jt-cv" id="cv" aria-labelledby="cv-h">
+    <div class="jt-cv-head">
+      <div>
+        <h2 class="jt-h" id="cv-h">קורות חיים: שדרוג והגשה</h2>
+        <p class="jt-note">קורה רק כשאתה מבקש. בוחרים משרה ולוחצים: שדרוג מתאים את קורות החיים למשרה, הגשה מכינה מייל או טופס עם קורות החיים. הבקשה מועתקת, מדביקים אותה בצ'אט עם Claude, ושום דבר לא נשלח בלי אישור שלך</p>
+      </div>
+    </div>
+    <div class="jt-cv-form">
+      <label class="jt-field"><span>משרת יעד</span>
+        <select id="cv-target" class="jt-input"><option value="">בלי משרה מסוימת — שיפור כללי</option></select>
+      </label>
+      <label class="jt-field"><span>שפת קורות החיים</span>
+        <select id="cv-lang" class="jt-input">
+          <option value="לפי המשרה">לפי המשרה</option>
+          <option value="עברית">עברית</option>
+          <option value="English">English</option>
+        </select>
+      </label>
+      <label class="jt-field jt-field-wide"><span>מה לשנות / הערות להגשה</span>
+        <textarea id="cv-ask" class="jt-input" rows="3" placeholder="למשל: להבליט פרויקט מסוים, לקצר לעמוד אחד, תקציר חדש שמתאים לתפקיד…"></textarea>
+      </label>
+      <div class="jt-cv-actions jt-field-wide">
+        <button type="button" id="cv-go" class="jt-primary">שדרוג קורות חיים</button>
+        <button type="button" id="cv-apply" class="jt-secondary">הגשת קורות חיים</button>
+        <span id="cv-status" class="jt-note" role="status"></span>
+      </div>
+      <textarea id="cv-out" class="jt-input jt-cv-out jt-field-wide" rows="7" readonly hidden aria-label="הבקשה שהועתקה"></textarea>
+    </div>
+  </section>
+
+  <section class="jt-card jt-replies-card" id="replies">
+    <div class="jt-tablehead">
+      <div>
+        <h2 class="jt-h">תשובות ופניות שקיבלת</h2>
+        <p class="jt-note">כל המיילים על ההגשות שלך: זימונים, בקשות לשיחה, מטלות, אישורים ודחיות. לחיצה על הטקסט פותחת את המייל עצמו</p>
+      </div>
+      <div class="jt-controls">
+        <input class="jt-search jt-rep-search" type="search" placeholder="חיפוש חברה, משרה או תוכן…" aria-label="חיפוש במיילים">
+        <div class="jt-live"><span class="jt-live-dot" aria-hidden="true"></span><span class="jt-live-text">המצב נבדק מול Gmail בכל פתיחה</span><button type="button" class="jt-refresh">רענון מ-Gmail</button></div>
+      </div>
+    </div>
+    <div class="jt-chips jt-rep-chips" role="group" aria-label="סינון לפי מצב"></div>
+    <div class="jt-tablewrap jt-tall">
+      <table class="jt-table jt-replies" data-source="events" data-row-key="id">
+        <thead><tr>
+          <th data-field="date"><button type="button" data-sort="date">תאריך</button></th>
+          <th data-field="company"><button type="button" data-sort="company">חברה</button></th>
+          <th data-field="role" class="jt-hide-sm"><button type="button" data-sort="role">משרה</button></th>
+          <th data-field="kind"><button type="button" data-sort="kind">סוג</button></th>
+          <th data-field="text"><button type="button" data-sort="text">מה כתבו</button></th>
+          <th data-source="mail_live" data-field="mail_state"><button type="button" data-sort="mail_state">מצב</button></th>
+          <th data-source="applications" data-field="channel"><button type="button" data-sort="channel">מאיפה הוגש</button></th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="archive">
+    <details class="jt-insights jt-archive">
+    <summary class="jt-h jt-sec">ארכיון <span class="jt-arch-count"></span> <span class="jt-note">— שיחות שבהן כתבו שהמשרה לא מתאימה ואתה כבר ענית. לחיצה פותחת</span></summary>
+    <div class="jt-card">
+      <div class="jt-tablewrap jt-tall">
+        <table class="jt-table jt-arch">
+          <thead><tr>
+            <th>תאריך</th><th>חברה</th><th class="jt-hide-sm">משרה</th><th>סוג</th><th>מה כתבו</th><th>מצב</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+    </details>
+  </section>
+
+  <section class="jt-grid" id="todo">
+    <div class="jt-card" id="followup-card">
+      <h2 class="jt-h">פולואפ ופנייה ישירה</h2>
+      <p class="jt-note">הגשות פתוחות שעברו 10 ימים בלי תזוזה, וחברות שאפשר לפנות אליהן ישירות. איפה שיש כתובת — ״ליצור טיוטה״ מכין טיוטת פולואפ ב-Gmail שאתה עובר עליה ושולח בעצמך</p>
+      <div class="jt-tablewrap jt-short">
+        <table class="jt-table jt-followups" data-source="applications" data-row-key="id">
+          <thead><tr>
+            <th data-field="company">חברה</th>
+            <th data-field="role">משרה</th>
+            <th data-field="followup_after">מתי</th>
+            <th data-field="direct_contact">לאן לפנות</th>
+            <th data-field="next_step">פולואפ</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="jt-card" id="goal-card">
+      <h2 class="jt-h">יעד שבועי</h2>
+      <p class="jt-note">הגשות השבוע (מיום ראשון) מול היעד</p>
+      <div class="jt-goal" data-source="weekly goals">
+        <div class="jt-goal-nums"><span class="jt-goal-now dash-skeleton">—</span><span class="jt-goal-of"> מתוך <span class="jt-goal-target">—</span></span></div>
+        <div class="jt-goal-track"><div class="jt-goal-fill"></div></div>
+        <p class="jt-note jt-goal-msg"></p>
+      </div>
+    </div>
+  </section>
+
+  <section class="jt-card" id="prep">
+    <h2 class="jt-h">הכנה לראיונות ולשיחות</h2>
+    <p class="jt-note">נוצר אוטומטית לכל תהליך פעיל: מה השלב, מה צפוי, שאלות לתרגול ומה להכין</p>
+    <div class="jt-prep" data-source="prep"></div>
+  </section>
+
+  <section class="jt-card" id="leads">
+    <div class="jt-tablehead">
+      <div>
+        <h2 class="jt-h">משרות שכדאי להגיש אליהן</h2>
+        <p class="jt-note">נבחרו אוטומטית מהתראות המשרות שלך לפי הפרופיל: {{PROFILE_SUMMARY}}, ונבדקו באתר המשרה. משרות שכבר הגשת אליהן או שנסגרו לא מופיעות. לחיצה על שם המשרה פותחת את המודעה, ועל שם החברה את המייל</p>
+      </div>
+      <div class="jt-chips jt-lead-chips" role="group" aria-label="סינון לפי התאמה"></div>
+    </div>
+    <div class="jt-tablewrap">
+      <table class="jt-table jt-leads" data-source="job_leads" data-row-key="id">
+        <thead><tr>
+          <th>הגשה</th>
+          <th data-field="company">חברה</th>
+          <th data-field="role">משרה</th>
+          <th data-field="fit">התאמה</th>
+          <th data-field="role_desc">מה עושים בתפקיד</th>
+          <th data-field="location" class="jt-hide-sm">מיקום</th>
+          <th data-field="status" class="jt-hide-sm">מצב המשרה</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="jt-kpis" id="kpis">
+    <div class="jt-kpi"><div class="jt-kpi-label">סה״כ הגשות</div><div class="jt-kpi-num"><span data-source="kpis" data-field="total" data-row="0" class="dash-skeleton">—</span></div><div class="jt-kpi-sub">מאז סוף יולי</div></div>
+    <div class="jt-kpi"><div class="jt-kpi-label">ממתינות לתשובה</div><div class="jt-kpi-num"><span data-source="kpis" data-field="waiting" data-row="0" class="dash-skeleton">—</span></div><div class="jt-kpi-sub">סטטוס ״הוגש״</div></div>
+    <div class="jt-kpi jt-kpi-good"><div class="jt-kpi-label">בתהליך</div><div class="jt-kpi-num"><span data-source="kpis" data-field="in_process" data-row="0" class="dash-skeleton">—</span></div><div class="jt-kpi-sub">מבחן, שיחה או ראיון</div></div>
+    <div class="jt-kpi jt-kpi-bad"><div class="jt-kpi-label">נדחו</div><div class="jt-kpi-num"><span data-source="kpis" data-field="rejected" data-row="0" class="dash-skeleton">—</span></div><div class="jt-kpi-sub">תשובה שלילית</div></div>
+    <div class="jt-kpi"><div class="jt-kpi-label">שיעור מענה</div><div class="jt-kpi-num"><span data-source="kpis" data-field="response_pct" data-row="0" class="dash-skeleton">—</span><span class="jt-pct">%</span></div><div class="jt-kpi-sub">קיבלו תשובה מעבר לאישור אוטומטי</div></div>
+  </section>
+
+  <section class="jt-grid" id="charts">
+    <div class="jt-card" id="by-status-card">
+      <h2 class="jt-h">לפי סטטוס</h2>
+      <p class="jt-note">איפה כל ההגשות עומדות היום</p>
+      <div class="jt-bars" id="by-status" data-source="by_status"></div>
+    </div>
+    <div class="jt-card" id="weekly-card">
+      <h2 class="jt-h">הגשות לפי שבוע</h2>
+      <p class="jt-note">שבוע מתחיל ביום ראשון</p>
+      <div class="jt-chart" id="weekly" data-source="weekly"></div>
+    </div>
+    <div class="jt-card" id="by-company-card">
+      <h2 class="jt-h">לפי חברה</h2>
+      <p class="jt-note">מספר משרות שהוגשו לכל חברה</p>
+      <div class="jt-bars" id="by-company" data-source="by_company"></div>
+    </div>
+    <div class="jt-card" id="by-channel-card">
+      <h2 class="jt-h">לפי ערוץ הגשה</h2>
+      <p class="jt-note">ושיעור התגובה בכל ערוץ</p>
+      <div class="jt-bars" id="by-channel" data-source="by_channel"></div>
+    </div>
+  </section>
+
+  <section id="insights">
+    <details class="jt-insights">
+    <summary class="jt-h jt-sec">מה עובד <span class="jt-note">— ניתוח לפי רמה, גרסת קו״ח וסוג חברה. יהיה משמעותי יותר מ-50 הגשות ומעלה; לחיצה פותחת</span></summary>
+    <div class="jt-grid">
+      <div class="jt-card" id="by-level-card">
+        <h2 class="jt-h">לפי רמת משרה</h2>
+        <p class="jt-note">כמה הוגשו וכמה קיבלו תשובה</p>
+        <div class="jt-bars" id="by-level" data-source="by_level"></div>
+      </div>
+      <div class="jt-card" id="by-cv-card">
+        <h2 class="jt-h">לפי גרסת קורות חיים</h2>
+        <p class="jt-note">איזו גרסה נשלחה וכמה ענו לה</p>
+        <div class="jt-bars" id="by-cv" data-source="by_cv"></div>
+      </div>
+      <div class="jt-card" id="by-origin-card">
+        <h2 class="jt-h">ישראליות מול בינלאומיות</h2>
+        <p class="jt-note">עברית לחברות ישראליות, אנגלית לבינלאומיות</p>
+        <div class="jt-bars" id="by-origin" data-source="by_origin"></div>
+      </div>
+      <div class="jt-card" id="speed-card">
+        <h2 class="jt-h">זמן עד תשובה</h2>
+        <p class="jt-note">ממוצע ימים מהגשה ועד תשובה ראשונה, בהגשות שענו להן</p>
+        <div class="jt-kpi-num"><span data-source="response_time" data-field="avg_days" data-row="0" class="dash-skeleton">—</span><span class="jt-pct"> ימים</span></div>
+        <p class="jt-note">מבוסס על <span data-source="response_time" data-field="n" data-row="0">—</span> הגשות שקיבלו תשובה</p>
+      </div>
+    </div>
+    </details>
+  </section>
+
+
+
+  <section class="jt-card" id="all-applications">
+    <div class="jt-tablehead">
+      <div>
+        <h2 class="jt-h">כל ההגשות</h2>
+        <p class="jt-note">לחיצה על שם החברה פותחת את המייל המקורי</p>
+      </div>
+      <div class="jt-controls">
+        <input class="jt-search jt-app-search" type="search" placeholder="חיפוש חברה או משרה…" aria-label="חיפוש בהגשות">
+        <div class="jt-chips jt-app-chips" role="group" aria-label="סינון לפי סטטוס"></div>
+      </div>
+    </div>
+    <div class="jt-tablewrap">
+      <table class="jt-table jt-apps" data-source="applications" data-row-key="id">
+        <thead><tr>
+          <th data-field="company"><button type="button" data-sort="company">חברה</button></th>
+          <th data-field="role"><button type="button" data-sort="role">משרה</button></th>
+          <th data-field="applied"><button type="button" data-sort="applied">הוגש</button></th>
+          <th data-field="status"><button type="button" data-sort="status">סטטוס</button></th>
+          <th data-field="last_update"><button type="button" data-sort="last_update">עדכון אחרון</button></th>
+          <th data-field="channel" class="jt-hide-sm"><button type="button" data-sort="channel">ערוץ</button></th>
+          <th data-field="level" class="jt-hide-sm"><button type="button" data-sort="level">רמה</button></th>
+          <th data-field="cv_version" class="jt-hide-sm"><button type="button" data-sort="cv_version">קו״ח</button></th>
+          <th data-field="next_step" class="jt-hide-sm"><button type="button" data-sort="next_step">צעד הבא</button></th>
+          <th data-field="note" class="jt-hide-sm"><button type="button" data-sort="note">הערות</button></th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <div class="jt-tip" hidden></div>
+</div>
+
+<style>@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Assistant:wght@400;500;600;700&display=swap');</style>
+<style>
+  .jt { font-family: var(--font-anthropic-sans), system-ui, "Segoe UI", Arial, sans-serif; color: var(--color-fg); display: flex; flex-direction: column; gap: var(--cds-gap-lg); text-align: right; }
+  .jt-head { display: flex; flex-direction: column; gap: var(--cds-gap-xs); }
+  .jt-title { font-family: var(--font-anthropic-serif), Georgia, serif; font-weight: 400; font-size: var(--cds-font-size-title); margin: 0; }
+  .jt-take { margin: 0; color: var(--color-fg-muted); font-size: var(--cds-font-size-body); }
+  .jt-take span { color: var(--color-fg); font-variant-numeric: tabular-nums; }
+
+  .jt-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr)); gap: var(--cds-gap-md); }
+  .jt-kpi { background: var(--color-panel); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); padding: var(--cds-pad-lg); display: flex; flex-direction: column; gap: var(--cds-gap-xs); }
+  .jt-kpi-label { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+  .jt-kpi-num { font-family: var(--font-anthropic-serif), Georgia, serif; font-weight: 400; font-size: var(--cds-font-size-title); font-variant-numeric: tabular-nums; line-height: 1.1; min-height: 1.2em; }
+  .jt-kpi-good .jt-kpi-num { color: var(--color-ok); }
+  .jt-kpi-bad .jt-kpi-num { color: var(--color-bad); }
+  .jt-pct { font-size: 0.6em; margin-inline-start: 2px; color: var(--color-fg-muted); }
+  .jt-kpi-sub { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+
+  .jt-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr)); gap: var(--cds-gap-md); }
+  .jt-card { background: var(--color-panel); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); padding: var(--cds-pad-lg); display: flex; flex-direction: column; gap: var(--cds-gap-sm); min-width: 0; }
+  .jt-h { font-size: var(--cds-font-size-heading); font-weight: var(--cds-font-weight-medium); margin: 0; }
+  .jt-note { margin: 0; font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+
+  .jt-bars { display: flex; flex-direction: column; gap: var(--cds-gap-sm); min-height: 9rem; }
+  .jt-bar { display: grid; grid-template-columns: minmax(6rem, 38%) 1fr auto; align-items: center; gap: var(--cds-gap-sm); font-size: var(--cds-font-size-caption); }
+  .jt-bar-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .jt-bar-track { height: 14px; border-radius: 7px; background: var(--cds-chart-grid); overflow: hidden; display: flex; justify-content: flex-start; }
+  .jt-bar-fill { height: 100%; border-radius: 7px; }
+  .jt-bar-val { font-variant-numeric: tabular-nums; min-width: 3.5em; text-align: left; color: var(--color-fg-muted); }
+  .jt-bar-val b { color: var(--color-fg); font-weight: var(--cds-font-weight-medium); }
+
+  .jt-chart { position: relative; min-height: 200px; }
+  .jt-chart svg { display: block; }
+
+  .jt-tablehead { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: var(--cds-gap-md); }
+  .jt-controls { display: flex; flex-direction: column; gap: var(--cds-gap-sm); align-items: flex-start; min-width: min(100%, 18rem); }
+  .jt-search { width: 100%; box-sizing: border-box; font: inherit; font-size: var(--cds-font-size-body); padding: var(--cds-pad-xs) var(--cds-pad-sm); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); background: var(--color-bg); color: var(--color-fg); }
+  .jt-chips { display: flex; flex-wrap: wrap; gap: var(--cds-gap-xs); }
+  .jt-chip { font: inherit; font-size: var(--cds-font-size-caption); padding: 2px 10px; border-radius: 999px; border: 1px solid var(--color-border-line); background: transparent; color: var(--color-fg-muted); cursor: pointer; }
+  .jt-chip[aria-pressed="true"] { background: var(--color-fg); color: var(--color-bg); border-color: var(--color-fg); }
+
+  .jt-tablewrap { max-height: 32rem; overflow: auto; border-radius: var(--cds-radius); }
+  .jt-short { max-height: 22rem; }
+  .jt-tall { max-height: 40rem; }
+  .jt-live { display: flex; align-items: center; gap: var(--cds-gap-xs); font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); flex-wrap: wrap; }
+  .jt-live-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--color-fg-muted); }
+  .jt-live-dot[data-on="ok"] { background: var(--color-ok); }
+  .jt-live-dot[data-on="busy"] { background: var(--color-warn); }
+  .jt-live-dot[data-on="off"] { background: var(--color-bad); }
+  .jt-refresh { font: inherit; font-size: var(--cds-font-size-caption); padding: 2px 10px; border-radius: 999px; border: 1px solid var(--color-border-line); background: transparent; color: var(--color-fg); cursor: pointer; }
+  .jt-rep-chips { margin-top: calc(-1 * var(--cds-gap-xs)); }
+  .jt-replies { font-size: var(--cds-font-size-body); }
+  .jt-replies td { padding: var(--cds-pad-sm); }
+  .jt-replies td.jt-role { color: var(--color-fg-muted); max-width: 16rem; }
+  .jt-table { width: 100%; border-collapse: collapse; font-size: var(--cds-font-size-caption); font-variant-numeric: tabular-nums; }
+  .jt-table th { position: sticky; top: 0; background: var(--color-panel); text-align: right; font-weight: var(--cds-font-weight-medium); color: var(--color-fg-muted); border-bottom: 1px solid var(--color-border-line); padding: var(--cds-pad-xs) var(--cds-pad-sm); white-space: nowrap; z-index: 1; }
+  .jt-table th button { all: unset; cursor: pointer; }
+  .jt-table th[aria-sort] button::after { content: " ↕"; opacity: .4; }
+  .jt-table th[aria-sort="ascending"] button::after { content: " ↑"; opacity: 1; }
+  .jt-table th[aria-sort="descending"] button::after { content: " ↓"; opacity: 1; }
+  .jt-table td { padding: var(--cds-pad-xs) var(--cds-pad-sm); border-bottom: 1px solid var(--color-border-line); vertical-align: top; }
+  .jt-table tbody tr:hover { background: var(--color-bg); }
+  .jt-table a { color: inherit; text-decoration: underline; text-decoration-color: var(--color-border-line); text-underline-offset: 3px; }
+  .jt-table td.jt-company { font-weight: var(--cds-font-weight-medium); white-space: nowrap; }
+  .jt-table td.jt-date { white-space: nowrap; }
+  .jt-pill { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: var(--cds-font-size-caption); white-space: nowrap; border: 1px solid currentColor; }
+  .jt-st-submitted { color: var(--color-fg-muted); }
+  .jt-st-process { color: var(--color-ok); }
+  .jt-st-interview { color: var(--color-ok); }
+  .jt-st-offer { color: var(--color-ok); font-weight: var(--cds-font-weight-medium); }
+  .jt-st-rejected { color: var(--color-bad); }
+  .jt-ms-unread { color: var(--color-warn); font-weight: var(--cds-font-weight-medium); }
+  .jt-ms-wait { color: var(--color-warn); font-weight: var(--cds-font-weight-medium); background: color-mix(in srgb, var(--color-warn) 12%, transparent); }
+  .jt-ms-read { color: var(--color-fg-muted); }
+  .jt-ms-replied, .jt-ms-done { color: var(--color-ok); }
+  .jt-ms-sent { color: var(--color-fg-muted); border-style: dashed; }
+  .jt-legend { display: flex; flex-wrap: wrap; gap: var(--cds-gap-xs); font-size: var(--cds-font-size-caption); }
+  .jt-act { color: var(--color-warn); font-weight: var(--cds-font-weight-medium); }
+  .jt-table tr.jt-needs td { background: color-mix(in srgb, var(--color-warn) 8%, transparent); }
+  .jt-table a.jt-mail::after { content: " ↗"; opacity: .55; }
+  .jt-replies-card { border-color: color-mix(in srgb, var(--color-warn) 35%, var(--color-border-line)); }
+  .jt-sec { margin-bottom: var(--cds-gap-sm); }
+  #todo { grid-template-columns: 1fr; }
+  #insights { display: flex; flex-direction: column; gap: var(--cds-gap-sm); }
+  .jt-goal { display: flex; flex-direction: column; gap: var(--cds-gap-sm); min-height: 7rem; justify-content: center; }
+  .jt-goal-nums { font-family: var(--font-anthropic-serif), Georgia, serif; font-size: var(--cds-font-size-title); font-variant-numeric: tabular-nums; }
+  .jt-goal-of { font-size: var(--cds-font-size-body); color: var(--color-fg-muted); font-family: var(--font-anthropic-sans), system-ui, sans-serif; }
+  .jt-goal-track { height: 12px; border-radius: 6px; background: var(--cds-chart-grid); overflow: hidden; }
+  .jt-goal-fill { height: 100%; border-radius: 6px; background: var(--color-ok); width: 0; transition: width var(--cds-dur-slow) var(--cds-ease-out); }
+  .jt-prep { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr)); gap: var(--cds-gap-md); min-height: 6rem; }
+  .jt-prep-item { border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); padding: var(--cds-pad-md); display: flex; flex-direction: column; gap: var(--cds-gap-xs); background: var(--color-bg); }
+  .jt-prep-item h3 { margin: 0; font-size: var(--cds-font-size-body); font-weight: var(--cds-font-weight-medium); }
+  .jt-prep-item .jt-prep-role { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+  .jt-prep-item .jt-prep-stage { font-size: var(--cds-font-size-caption); color: var(--color-ok); }
+  .jt-prep-item p { margin: 0; font-size: var(--cds-font-size-caption); line-height: 1.6; }
+  .jt-prep-item details { font-size: var(--cds-font-size-caption); }
+  .jt-prep-item summary { cursor: pointer; font-weight: var(--cds-font-weight-medium); padding: 2px 0; }
+  .jt-prep-item ul { margin: var(--cds-gap-xs) 0 0; padding-inline-start: 1.2em; line-height: 1.6; }
+  .jt-prep-item a { color: inherit; font-size: var(--cds-font-size-caption); }
+  .jt-draft { color: var(--color-warn); font-weight: var(--cds-font-weight-medium); }
+  .jt-desc { min-width: 16rem; max-width: 34rem; line-height: 1.55; }
+  .jt-desc-role { color: var(--color-fg); }
+  .jt-desc-about { color: var(--color-fg-muted); margin-top: 4px; }
+  .jt-desc-why { color: var(--color-ok); margin-top: 4px; }
+  .jt-muted { color: var(--color-fg-muted); }
+  .jt-channel { white-space: nowrap; color: var(--color-fg-muted); }
+  .jt-insights > summary { cursor: pointer; list-style-position: inside; margin-bottom: var(--cds-gap-sm); }
+  .jt-insights > summary .jt-note { font-weight: 400; }
+  .jt-arch-count { font-weight: 600; color: var(--color-fg-muted); }
+  .jt-arch { font-size: var(--cds-font-size-body); }
+  .jt-arch td { padding: var(--cds-pad-sm); }
+  .jt-arch td.jt-role { color: var(--color-fg-muted); max-width: 16rem; }
+  .jt-k-reject { color: var(--color-bad); }
+  .jt-k-progress { color: var(--color-ok); }
+  .jt-empty { color: var(--color-fg-muted); padding: var(--cds-pad-md); text-align: center; }
+
+  .jt-tip { position: absolute; pointer-events: none; background: var(--cds-surface-popover); border: 1px solid var(--cds-border); border-radius: var(--cds-radius); box-shadow: var(--cds-shadow-popover); padding: var(--cds-pad-xs) var(--cds-pad-sm); font-size: var(--cds-font-size-caption); z-index: 5; white-space: nowrap; }
+  .jt-tip .jt-tip-d { color: var(--cds-text-secondary); }
+
+  .jt-fail { display: flex; align-items: center; justify-content: center; gap: var(--cds-gap-xs); color: var(--color-fg-muted); font-size: var(--cds-font-size-caption); min-height: inherit; }
+  .jt-fail::before { content: ""; width: 0.375rem; height: 0.375rem; border-radius: 50%; background: var(--color-bad); }
+
+  [data-dash-source-state=empty] { color: transparent; }
+  [data-dash-source-state=refreshing] { opacity: .5; transition: opacity var(--cds-dur-slow); }
+
+  @media (max-width: 720px) { .jt-hide-sm { display: none; } }
+  @media (prefers-reduced-motion: no-preference) {
+    .jt-bar-fill.jt-anim { animation: jtgrow var(--cds-dur-slow) var(--cds-ease-out) both; transform-origin: right center; }
+    @keyframes jtgrow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+  }
+  /* ===== House style: navy & beige liquid glass (apple-design §0) ===== */
+  .jt {
+    --bg: #f4efe6; --bg-2: #fbf8f2; --sand: #e6d8bf; --navy: #1b2a4a; --navy-deep: #111c33;
+    --accent: #24407a; --accent-soft: rgba(36, 64, 122, 0.10); --gold: #b88a3e; --gold-ink: #8a6420;
+    --gold-soft: rgba(184, 138, 62, 0.14); --text-muted: #5f6678; --success: #1f7a4a; --danger: #b5434c;
+    --glass-bg: rgba(255, 252, 246, 0.55); --glass-strong: rgba(255, 252, 246, 0.78); --glass-head: rgba(251, 248, 242, 0.92);
+    --glass-border: rgba(255, 255, 255, 0.8); --glass-shadow: 0 12px 40px rgba(27, 42, 74, 0.14);
+    --glass-blur: blur(26px) saturate(160%); --hair: rgba(27, 42, 74, 0.10);
+    --radius-lg: 22px; --radius-md: 14px; --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+    --blob-a: .30; --blob-b: .38; --blob-c: .75; --blob-d: .22;
+    --font-he: 'Assistant', 'Poppins', system-ui, sans-serif; --font: 'Poppins', 'Assistant', system-ui, sans-serif;
+    --jt-c0: #24407a; --jt-c1: #466eaa; --jt-c2: #b88a3e; --jt-c3: #1f7a4a; --jt-c4: #7b5ea7; --jt-c-muted: rgba(27, 42, 74, 0.22);
+    /* map the dashboard's own tokens onto the house palette */
+    --color-fg: var(--navy); --color-fg-muted: var(--text-muted); --color-panel: var(--glass-bg);
+    --color-border-line: var(--hair); --color-bg: var(--glass-strong); --color-ok: var(--success);
+    --color-bad: var(--danger); --color-warn: var(--gold-ink); --cds-radius: var(--radius-md);
+    --cds-chart-grid: rgba(27, 42, 74, 0.08); --cds-chart-axis: rgba(27, 42, 74, 0.25); --cds-chart-muted: var(--jt-c-muted);
+    --cds-chart-status-critical: var(--danger);
+    position: relative; isolation: isolate; background: var(--bg); color: var(--navy);
+    font-family: var(--font-he); border-radius: var(--radius-lg); padding: clamp(16px, 3vw, 28px);
+    overflow: hidden; overflow: clip;
+  }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .jt {
+    --bg: #0e1626; --bg-2: #142039; --sand: #2a3550; --navy: #f3ecdf; --navy-deep: #fbf8f2; --accent: #9db7e6;
+    --accent-soft: rgba(157, 183, 230, 0.14); --gold: #e2bd76; --gold-ink: #e2bd76; --gold-soft: rgba(226, 189, 118, 0.16);
+    --text-muted: #b7b0a2; --success: #5cc493; --danger: #ec8a91; --glass-bg: rgba(20, 32, 56, 0.55);
+    --glass-strong: rgba(24, 38, 66, 0.78); --glass-head: rgba(20, 32, 57, 0.94); --glass-border: rgba(255, 255, 255, 0.12);
+    --glass-shadow: 0 12px 40px rgba(0, 0, 0, 0.45); --hair: rgba(243, 236, 223, 0.12);
+    --blob-a: .2; --blob-b: .2; --blob-c: .2; --blob-d: .2;
+    --jt-c0: #9db7e6; --jt-c1: #6f93cf; --jt-c2: #e2bd76; --jt-c3: #5cc493; --jt-c4: #b79be0; --jt-c-muted: rgba(243, 236, 223, 0.25);
+    --cds-chart-grid: rgba(243, 236, 223, 0.08); --cds-chart-axis: rgba(243, 236, 223, 0.25); color-scheme: dark; } }
+  :root[data-theme="dark"] .jt {
+    --bg: #0e1626; --bg-2: #142039; --sand: #2a3550; --navy: #f3ecdf; --navy-deep: #fbf8f2; --accent: #9db7e6;
+    --accent-soft: rgba(157, 183, 230, 0.14); --gold: #e2bd76; --gold-ink: #e2bd76; --gold-soft: rgba(226, 189, 118, 0.16);
+    --text-muted: #b7b0a2; --success: #5cc493; --danger: #ec8a91; --glass-bg: rgba(20, 32, 56, 0.55);
+    --glass-strong: rgba(24, 38, 66, 0.78); --glass-head: rgba(20, 32, 57, 0.94); --glass-border: rgba(255, 255, 255, 0.12);
+    --glass-shadow: 0 12px 40px rgba(0, 0, 0, 0.45); --hair: rgba(243, 236, 223, 0.12);
+    --blob-a: .2; --blob-b: .2; --blob-c: .2; --blob-d: .2;
+    --jt-c0: #9db7e6; --jt-c1: #6f93cf; --jt-c2: #e2bd76; --jt-c3: #5cc493; --jt-c4: #b79be0; --jt-c-muted: rgba(243, 236, 223, 0.25);
+    --cds-chart-grid: rgba(243, 236, 223, 0.08); --cds-chart-axis: rgba(243, 236, 223, 0.25); color-scheme: dark; }
+
+  /* soft blurred colour blobs behind everything, contained in the page */
+  .jt::before {
+    content: ''; position: absolute; inset: -10%; z-index: -1; pointer-events: none;
+    background:
+      radial-gradient(45% 30% at 18% 6%, rgba(36, 64, 122, var(--blob-a)), transparent 72%),
+      radial-gradient(48% 30% at 85% 4%, rgba(216, 174, 94, var(--blob-b)), transparent 72%),
+      radial-gradient(50% 28% at 22% 55%, rgba(230, 216, 191, var(--blob-c)), transparent 72%),
+      radial-gradient(45% 30% at 82% 70%, rgba(70, 110, 170, var(--blob-d)), transparent 72%),
+      radial-gradient(50% 25% at 30% 96%, rgba(216, 174, 94, var(--blob-d)), transparent 72%),
+      linear-gradient(160deg, var(--bg-2), var(--bg) 60%);
+    filter: blur(50px);
+    animation: jtdrift 22s ease-in-out infinite alternate;
+  }
+  @keyframes jtdrift { from { transform: scale(1); } to { transform: scale(1.06) translate(-1.5%, 1.5%); } }
+
+  /* header */
+  .jt-head { align-items: center; text-align: center; padding-block: .5rem .25rem; }
+  .jt-title {
+    font-family: var(--font-he); font-weight: 700; font-size: clamp(2rem, 6vw, 2.8rem); line-height: 1.1; letter-spacing: -0.01em;
+    background: linear-gradient(90deg, var(--navy-deep), var(--accent), var(--gold));
+    -webkit-background-clip: text; background-clip: text; color: transparent; text-wrap: balance;
+  }
+  .jt-take { color: var(--text-muted); text-wrap: balance; max-width: 46ch; }
+  .jt-take span { color: var(--navy); font-weight: 600; font-family: var(--font); }
+
+  /* glass cards; inner items use the stronger glass (never glass on glass) */
+  .jt-card, .jt-kpi {
+    background: var(--glass-bg); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border); border-radius: var(--radius-lg);
+    box-shadow: var(--glass-shadow), inset 0 1px 1px rgba(255, 255, 255, 0.6);
+    padding: 22px;
+  }
+  .jt-replies-card { border-color: var(--glass-border); box-shadow: var(--glass-shadow), inset 0 0 0 1px var(--gold-soft), inset 0 1px 1px rgba(255, 255, 255, 0.6); }
+  .jt-prep-item { background: var(--glass-strong); border: 1px solid var(--hair); border-radius: var(--radius-md); padding: 16px; }
+  .jt-h { font-family: var(--font-he); font-weight: 600; font-size: 1.15rem; letter-spacing: -0.01em; color: var(--navy); }
+  .jt-note { font-size: 0.875rem; line-height: 1.45; color: var(--text-muted); }
+
+  /* KPIs: hero numbers */
+  .jt-kpi { padding: 18px 20px; gap: 4px; }
+  .jt-kpi-label { font-weight: 600; font-size: 0.85rem; letter-spacing: 0.01em; color: var(--text-muted); }
+  .jt-kpi-num, .jt-goal-nums { font-family: var(--font); font-weight: 700; letter-spacing: -0.02em; color: var(--navy); line-height: 1.1; }
+  .jt-goal-of { font-family: var(--font-he); }
+
+  /* controls: pills, search, segmented chips, press feedback */
+  .jt-search { min-height: 44px; border-radius: var(--radius-md); background: var(--bg-2); border: 1px solid var(--hair); color: var(--navy); padding-inline: 14px; }
+  .jt-search::placeholder { color: var(--text-muted); }
+  .jt-chip, .jt-refresh {
+    min-height: 34px; padding: 4px 14px; border-radius: 999px; font-weight: 600;
+    background: var(--glass-strong); border: 1px solid var(--glass-border); color: var(--navy);
+    touch-action: manipulation; transition: transform 100ms ease-out, background-color 150ms ease-out, color 150ms ease-out;
+  }
+  .jt-chip[aria-pressed="true"] { background: var(--navy); color: var(--bg-2); border-color: var(--navy); }
+  .jt-refresh { background: var(--accent-soft); color: var(--accent); border-color: color-mix(in srgb, var(--accent) 35%, transparent); }
+  .jt-chip:active, .jt-refresh:active, .jt-table th button:active { transform: scale(0.97); }
+  .jt-chip:focus-visible, .jt-refresh:focus-visible, .jt-search:focus-visible, .jt a:focus-visible,
+  .jt-table th button:focus-visible, .jt summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  /* tables inside glass: readable sticky header, soft rows */
+  .jt-tablewrap { border-radius: var(--radius-md); background: var(--glass-strong); border: 1px solid var(--hair); }
+  .jt-table th { background: var(--glass-head); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); color: var(--text-muted); font-weight: 600; }
+  .jt-table td { border-bottom-color: var(--hair); }
+  .jt-table tbody tr { transition: background-color 150ms ease-out; }
+  .jt-table tbody tr:hover { background: var(--accent-soft); }
+  .jt-table a { color: var(--accent); text-decoration-color: color-mix(in srgb, var(--accent) 35%, transparent); }
+  .jt-table tr.jt-needs td { background: var(--gold-soft); }
+  .jt-pill { border: 0; padding: 3px 10px; font-weight: 600; background: var(--accent-soft); }
+  .jt-st-submitted, .jt-ms-read, .jt-ms-sent { background: color-mix(in srgb, var(--text-muted) 12%, transparent); }
+  .jt-st-process, .jt-st-interview, .jt-st-offer, .jt-ms-replied, .jt-ms-done { background: color-mix(in srgb, var(--success) 13%, transparent); }
+  .jt-st-rejected { background: color-mix(in srgb, var(--danger) 12%, transparent); }
+  .jt-ms-unread, .jt-ms-wait { background: var(--gold-soft); color: var(--gold-ink); }
+  .jt-ms-sent { border: 1px dashed currentColor; }
+  .jt-draft, .jt-act { color: var(--gold-ink); }
+
+  /* bars and goal */
+  .jt-bar-track, .jt-goal-track { background: var(--cds-chart-grid); }
+  .jt-goal-fill { background: linear-gradient(90deg, var(--accent), var(--gold)); transition: width 420ms var(--ease-out); }
+  .jt-tip { background: var(--glass-head); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur); border: 1px solid var(--glass-border); border-radius: 12px; box-shadow: var(--glass-shadow); color: var(--navy); }
+  .jt-tip .jt-tip-d { color: var(--text-muted); }
+  .jt-num, .jt-table td.jt-date, .jt-bar-val { font-family: var(--font); }
+
+  /* motion: cards rise in, critically damped (no overshoot) */
+  @media (prefers-reduced-motion: no-preference) {
+    .jt-card, .jt-kpi { animation: jtrise 320ms var(--ease-out) both; }
+    @keyframes jtrise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .jt::before { animation: none; }
+    .jt-chip:active, .jt-refresh:active, .jt-table th button:active { transform: none; }
+  }
+  @media (prefers-reduced-transparency: reduce) {
+    .jt-card, .jt-kpi, .jt-tip, .jt-table th { background: var(--bg-2); -webkit-backdrop-filter: none; backdrop-filter: none; }
+  }
+  @media (prefers-contrast: more) {
+    .jt-card, .jt-kpi { background: var(--bg-2); border: 1px solid var(--navy); }
+    .jt-note, .jt-take, .jt-kpi-label { color: var(--navy); }
+  }
+  @media (max-width: 640px) { .jt-card, .jt-kpi { padding: 16px; } .jt { border-radius: 0; } }
+  /* CV upgrade card */
+  .jt-cv { border-color: var(--glass-border); }
+  .jt-cv-form { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 16px; align-items: end; }
+  .jt-field { display: flex; flex-direction: column; gap: 6px; min-width: 0; font-size: 0.875rem; font-weight: 600; color: var(--text-muted); }
+  .jt-field-wide { grid-column: 1 / -1; }
+  .jt-input { font: inherit; font-weight: 400; font-size: 1rem; color: var(--navy); background: var(--bg-2); border: 1px solid var(--hair); border-radius: var(--radius-md); padding: 10px 14px; min-height: 44px; box-sizing: border-box; width: 100%; }
+  textarea.jt-input { resize: vertical; line-height: 1.5; }
+  .jt-input:focus-visible, .jt-primary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .jt-cv-out { font-size: 0.9rem; color: var(--text-muted); }
+  .jt-cv-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+  .jt-primary { font: inherit; font-weight: 600; font-size: 1rem; min-height: 48px; padding: 0 22px; border: 0; border-radius: var(--radius-md); color: #fff; cursor: pointer;
+    background: linear-gradient(90deg, var(--accent), var(--navy-deep)); box-shadow: 0 8px 20px rgba(27, 42, 74, 0.28);
+    touch-action: manipulation; transition: transform 100ms ease-out, box-shadow 150ms ease-out; }
+  .jt-primary:hover { box-shadow: 0 10px 24px rgba(27, 42, 74, 0.34); }
+  .jt-primary:active { transform: scale(0.97); }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .jt-primary { color: #0e1626; background: linear-gradient(90deg, var(--accent), var(--gold)); } }
+  :root[data-theme="dark"] .jt-primary { color: #0e1626; background: linear-gradient(90deg, var(--accent), var(--gold)); }
+  @media (prefers-reduced-motion: reduce) { .jt-primary:active { transform: none; } }
+  @media (max-width: 640px) { .jt-cv-form { grid-template-columns: 1fr; } }
+  .jt-secondary, .jt-apply { font: inherit; font-weight: 600; border-radius: var(--radius-md); cursor: pointer; touch-action: manipulation;
+    background: var(--accent-soft); color: var(--accent); border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+    transition: transform 100ms ease-out, background-color 150ms ease-out; }
+  .jt-secondary { min-height: 48px; padding: 0 20px; font-size: 1rem; }
+  .jt-apply { min-height: 34px; padding: 2px 14px; font-size: 0.9rem; white-space: nowrap; }
+  .jt-secondary:active, .jt-apply:active { transform: scale(0.97); }
+  .jt-secondary:focus-visible, .jt-apply:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  @media (prefers-reduced-motion: reduce) { .jt-secondary:active, .jt-apply:active { transform: none; } }
+  .jt-sheet { position: sticky; z-index: 50; bottom: max(16px, env(safe-area-inset-bottom, 0px)); margin-inline: auto;
+    width: min(640px, 100%); box-sizing: border-box; display: grid; gap: 10px; padding: 18px 20px; direction: rtl; text-align: right;
+    background: var(--glass-head); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border); border-radius: var(--radius-lg); box-shadow: 0 20px 60px rgba(27, 42, 74, 0.28); }
+  .jt-sheet[hidden] { display: none; }
+  .jt-sheet .jt-h { margin: 0; }
+  @media (prefers-reduced-motion: no-preference) { .jt-sheet:not([hidden]) { animation: jtsheet 280ms var(--ease-out) both; }
+    @keyframes jtsheet { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } } }
+  @media (prefers-reduced-transparency: reduce) { .jt-sheet { background: var(--bg-2); -webkit-backdrop-filter: none; backdrop-filter: none; } }
+</style>
+
+<script>
+  const STATUS_ORDER = ['הוגש', 'בתהליך', 'ראיון', 'הצעה', 'נדחה'];
+  const STATUS_CLASS = { 'הוגש': 'jt-st-submitted', 'בתהליך': 'jt-st-process', 'ראיון': 'jt-st-interview', 'הצעה': 'jt-st-offer', 'נדחה': 'jt-st-rejected' };
+  const IS_IOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const threadHex = (url, hex) => {
+    if (hex && /^[0-9a-f]{8,20}$/.test(hex)) return hex;
+    const m = String(url || '').match(/thread-f:(\d+)/);
+    if (m) { try { return BigInt(m[1]).toString(16); } catch (e) { return ''; } }
+    return '';
+  };
+  const IS_PHONE = /iPhone|iPod|Android.+Mobile/.test(navigator.userAgent);
+  const mailHref = (url, hex) => {
+    if (!IS_PHONE) return url;
+    const h = threadHex(url, hex);
+    if (!h) return url;
+    const acct = (String(url).match(/authuser=([^&#]+)/) || [])[1] || '{{USER_EMAIL_URLENCODED}}';
+    return `https://mail.google.com/mail/mu/mp/?authuser=${acct}#cv/Inbox/${h}`;
+  };
+  const composeHref = (to) => (IS_IOS ? 'mailto:' + encodeURIComponent(to) : 'https://mail.google.com/mail/?view=cm&fs=1&to=' + encodeURIComponent(to));
+  window.JT = { C: ['var(--jt-c0)', 'var(--jt-c1)', 'var(--jt-c2)', 'var(--jt-c3)', 'var(--jt-c4)'], STATUS_ORDER, STATUS_CLASS, mailHref, composeHref, IS_IOS };
+
+
+  const gmailRows = async ({ answer, call, args }) => {
+    const parse = (a) => {
+      if (a == null) return {};
+      if (typeof a === 'string') { try { return JSON.parse(a); } catch (e) { throw new Error(a.slice(0, 200)); } }
+      if (Array.isArray(a.content) && a.content[0] && typeof a.content[0].text === 'string') return parse(a.content[0].text);
+      return a;
+    };
+    let page = parse(answer);
+    if (page.error) throw new Error(String(page.error.message || page.error));
+    const rows = [];
+    let guard = 0;
+    while (true) {
+      (page.threads || []).forEach((t) => (t.messages || []).forEach((m) => {
+        const labels = m.labelIds || [];
+        rows.push({ msg_id: m.id, thread_id: m.threadId || t.id, date: m.date || '', unread: labels.includes('UNREAD'), sent: labels.includes('SENT') });
+      }));
+      if (!page.nextPageToken || guard >= 3) break;
+      guard += 1;
+      page = parse(await call('search_threads', { ...args, pageToken: page.nextPageToken }));
+    }
+    return { columns: ['msg_id', 'thread_id', 'date', 'unread', 'sent'], rows, cut: !!page.nextPageToken };
+  };
+  dash.loader('gmail_unread', { description: 'הופך את תשובת Gmail לשורה לכל הודעה: מזהה, שרשור, תאריך, האם לא נקראה והאם נשלחה ממך.', fn: gmailRows });
+  dash.loader('gmail_sent', { description: 'הופך את תשובת Gmail לשורה לכל הודעה: מזהה, שרשור, תאריך, האם לא נקראה והאם נשלחה ממך.', fn: gmailRows });
+
+  dash.calc('mail_live', {
+    title: 'מצב המיילים עכשיו',
+    description: 'מצב כל מייל לפי Gmail ברגע הפתיחה: לא נקרא, נקרא, מחכה לתגובה, או שלחת תגובה באותו שרשור.',
+    inputs: ['events', 'gmail_unread', 'gmail_sent'],
+    fn: (events, gmail_unread, gmail_sent) => {
+      const unreadMsgs = new Set(gmail_unread.filter((m) => m.unread).map((m) => m.msg_id));
+      const unreadThreads = new Set(gmail_unread.filter((m) => m.unread).map((m) => m.thread_id));
+      const sent = gmail_sent.filter((m) => m.sent);
+      const later = (a, b) => (a.length === b.length ? a > b : a.length > b.length);
+      return events.map((e) => {
+        let s = e.mail_state;
+        const fixed = s === 'המטלה בוצעה' || s === 'נשלח ממך';
+        if (!fixed && e.thread_id) {
+          const replied = sent.some((m) => m.thread_id === e.thread_id && (e.msg_id ? later(m.msg_id, e.msg_id) : String(m.date).slice(0, 10) > e.date));
+          const isUnread = e.msg_id ? unreadMsgs.has(e.msg_id) : unreadThreads.has(e.thread_id);
+          if (replied) s = 'שלחת תגובה';
+          else if (isUnread) s = 'לא נקרא — כדאי להיכנס';
+          else if (s === 'לא נקרא — כדאי להיכנס') s = e.action === true ? 'נקרא — מחכה לתגובה שלך' : 'נקרא';
+        }
+        return { id: e.id, mail_state: s, action: s === 'שלחת תגובה' ? false : e.action === true };
+      });
+    },
+  });
+
+  dash.calc('kpis', {
+    title: 'מדדים מרכזיים',
+    description: 'ספירת הגשות לפי סטטוס, ואחוז ההגשות שקיבלו תשובה (כל סטטוס שאינו ״הוגש״).',
+    inputs: ['applications'],
+    fn: (applications) => {
+      const n = (s) => applications.filter((a) => a.status === s).length;
+      const total = applications.length;
+      const waiting = n('הוגש');
+      const in_process = n('בתהליך') + n('ראיון') + n('הצעה');
+      const rejected = n('נדחה');
+      return [{ total, waiting, in_process, rejected, active: waiting + in_process, response_pct: total ? Math.round(((total - waiting) / total) * 100) : 0 }];
+    },
+  });
+
+  dash.calc('by_status', {
+    title: 'הגשות לפי סטטוס',
+    description: 'מספר ההגשות בכל סטטוס.',
+    inputs: ['applications'],
+    fn: (applications) => {
+      const order = ['הוגש', 'בתהליך', 'ראיון', 'הצעה', 'נדחה'];
+      return order.map((status) => ({ status, n: applications.filter((a) => a.status === status).length }));
+    },
+  });
+
+  dash.calc('by_company', {
+    title: 'הגשות לפי חברה',
+    description: 'מספר המשרות שהוגשו לכל חברה, וכמה מהן עדיין פתוחות.',
+    inputs: ['applications'],
+    fn: (applications) => {
+      const m = new Map();
+      applications.forEach((a) => {
+        const r = m.get(a.company) || { company: a.company, n: 0, open: 0 };
+        r.n += 1;
+        if (a.status !== 'נדחה') r.open += 1;
+        m.set(a.company, r);
+      });
+      return [...m.values()].sort((x, y) => y.n - x.n || x.company.localeCompare(y.company));
+    },
+  });
+
+  dash.calc('by_channel', {
+    title: 'הגשות לפי ערוץ',
+    description: 'מספר ההגשות בכל ערוץ, וכמה מהן קיבלו תשובה (סטטוס שאינו ״הוגש״).',
+    inputs: ['applications'],
+    fn: (applications) => {
+      const m = new Map();
+      applications.forEach((a) => {
+        const r = m.get(a.channel) || { channel: a.channel, n: 0, answered: 0 };
+        r.n += 1;
+        if (a.status !== 'הוגש') r.answered += 1;
+        m.set(a.channel, r);
+      });
+      return [...m.values()].sort((x, y) => y.n - x.n);
+    },
+  });
+
+  const answeredBy = (applications, key) => {
+    const m = new Map();
+    applications.forEach((a) => {
+      const k = a[key] || 'לא ידוע';
+      const r = m.get(k) || { group: k, n: 0, answered: 0 };
+      r.n += 1;
+      if (a.status !== 'הוגש') r.answered += 1;
+      m.set(k, r);
+    });
+    return [...m.values()].map((r) => ({ ...r, answered_pct: Math.round((r.answered / r.n) * 100) })).sort((x, y) => y.n - x.n);
+  };
+  window.JT.answeredBy = answeredBy;
+
+  dash.calc('by_level', {
+    title: 'תגובה לפי רמת משרה',
+    description: 'לכל רמת משרה: כמה הוגשו, כמה קיבלו תשובה (סטטוס שאינו ״הוגש״) ובאיזה אחוז.',
+    inputs: ['applications'],
+    fn: (applications) => {
+      const m = new Map();
+      applications.forEach((a) => { const k = a.level || 'לא ידוע'; const r = m.get(k) || { group: k, n: 0, answered: 0 }; r.n += 1; if (a.status !== 'הוגש') r.answered += 1; m.set(k, r); });
+      return [...m.values()].map((r) => ({ ...r, answered_pct: Math.round((r.answered / r.n) * 100) })).sort((x, y) => y.n - x.n);
+    },
+  });
+
+  dash.calc('by_cv', {
+    title: 'תגובה לפי גרסת קו״ח',
+    description: 'לכל גרסת קורות חיים שנשלחה: כמה הוגשו, כמה קיבלו תשובה ובאיזה אחוז.',
+    inputs: ['applications'],
+    fn: (applications) => {
+      const m = new Map();
+      applications.forEach((a) => { const k = a.cv_version || 'לא ידוע'; const r = m.get(k) || { group: k, n: 0, answered: 0 }; r.n += 1; if (a.status !== 'הוגש') r.answered += 1; m.set(k, r); });
+      return [...m.values()].map((r) => ({ ...r, answered_pct: Math.round((r.answered / r.n) * 100) })).sort((x, y) => y.n - x.n);
+    },
+  });
+
+  dash.calc('by_origin', {
+    title: 'תגובה לפי סוג חברה',
+    description: 'חברות ישראליות מול בינלאומיות: כמה הוגשו, כמה קיבלו תשובה ובאיזה אחוז.',
+    inputs: ['applications'],
+    fn: (applications) => {
+      const m = new Map();
+      applications.forEach((a) => { const k = a.origin || 'לא ידוע'; const r = m.get(k) || { group: k, n: 0, answered: 0 }; r.n += 1; if (a.status !== 'הוגש') r.answered += 1; m.set(k, r); });
+      return [...m.values()].map((r) => ({ ...r, answered_pct: Math.round((r.answered / r.n) * 100) })).sort((x, y) => y.n - x.n);
+    },
+  });
+
+  dash.calc('response_time', {
+    title: 'זמן עד תשובה',
+    description: 'ממוצע הימים בין תאריך ההגשה לעדכון האחרון, בהגשות שקיבלו תשובה (סטטוס שאינו ״הוגש״).',
+    inputs: ['applications'],
+    fn: (applications) => {
+      const days = applications.filter((a) => a.status !== 'הוגש' && a.applied && a.last_update)
+        .map((a) => (new Date(a.last_update + 'T00:00:00Z') - new Date(a.applied + 'T00:00:00Z')) / 86400000);
+      return [{ n: days.length, avg_days: days.length ? Math.round((days.reduce((x, y) => x + y, 0) / days.length) * 10) / 10 : 0 }];
+    },
+  });
+
+  dash.calc('weekly', {
+    title: 'הגשות לפי שבוע',
+    description: 'מספר ההגשות בכל שבוע (ראשון עד שבת), כולל שבועות בלי הגשות.',
+    inputs: ['applications'],
+    fn: (applications) => {
+      const weekOf = (s) => { const d = new Date(s + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() - d.getUTCDay()); return d; };
+      if (!applications.length) return [];
+      const counts = new Map();
+      applications.forEach((a) => { const k = weekOf(a.applied).toISOString().slice(0, 10); counts.set(k, (counts.get(k) || 0) + 1); });
+      const keys = [...counts.keys()].sort();
+      const out = [];
+      const d = new Date(keys[0] + 'T00:00:00Z');
+      const end = new Date(keys[keys.length - 1] + 'T00:00:00Z');
+      while (d <= end) { const k = d.toISOString().slice(0, 10); out.push({ week: k, n: counts.get(k) || 0 }); d.setUTCDate(d.getUTCDate() + 7); }
+      return out;
+    },
+  });
+</script>
+
+<script>
+  (() => {
+    const root = document.querySelector('.jt');
+    const fmtDate = (s) => { if (!s) return ''; const [y, m, d] = s.split('-'); return `${d}.${m}.${y.slice(2)}`; };
+    window.JT.fmtDate = fmtDate;
+
+    const failLine = (el) => { el.replaceChildren(); const f = document.createElement('div'); f.className = 'jt-fail'; f.textContent = 'הטעינה נכשלה'; el.appendChild(f); };
+
+    const drawBars = (el, rows, opts) => {
+      el.replaceChildren();
+      if (!rows.length) { const e = document.createElement('div'); e.className = 'jt-empty'; e.textContent = 'אין נתונים עדיין'; el.appendChild(e); return; }
+      const max = Math.max(1, ...rows.map((r) => r[opts.value]));
+      rows.forEach((r, i) => {
+        const row = document.createElement('div'); row.className = 'jt-bar';
+        const lab = document.createElement('div'); lab.className = 'jt-bar-label'; lab.textContent = r[opts.label]; lab.title = r[opts.label];
+        const track = document.createElement('div'); track.className = 'jt-bar-track';
+        const fill = document.createElement('div'); fill.className = 'jt-bar-fill' + (opts.anim ? ' jt-anim' : '');
+        fill.style.width = `${(r[opts.value] / max) * 100}%`;
+        fill.style.background = opts.color(r, i);
+        track.appendChild(fill);
+        const val = document.createElement('div'); val.className = 'jt-bar-val';
+        const b = document.createElement('b'); b.textContent = d3.format(',')(r[opts.value]); val.appendChild(b);
+        if (opts.extra) { const x = opts.extra(r); if (x) val.append(' ' + x); }
+        row.append(lab, track, val);
+        el.appendChild(row);
+      });
+    };
+
+    const statusColor = (s) => {
+      const c = window.JT.C;
+      return { 'הוגש': 'var(--cds-chart-muted)', 'בתהליך': c[1], 'ראיון': c[2], 'הצעה': c[3], 'נדחה': 'var(--cds-chart-status-critical)' }[s] || c[0];
+    };
+
+    let animated = false;
+    const tip = root.querySelector('.jt-tip');
+
+    const drawWeekly = (el, rows) => {
+      el.replaceChildren();
+      if (!rows.length) { const e = document.createElement('div'); e.className = 'jt-empty'; e.textContent = 'אין נתונים עדיין'; el.appendChild(e); return; }
+      const W = Math.max(260, el.clientWidth || 320), H = 200;
+      const svg = d3.select(el).append('svg').attr('width', '100%').attr('viewBox', `0 0 ${W} ${H}`).attr('direction', 'ltr');
+      const max = d3.max(rows, (r) => r.n) || 1;
+      const y = d3.scaleLinear([0, max], [H - 28, 12]).nice();
+      const yTicks = y.ticks(Math.min(4, max)).filter(Number.isInteger);
+      const probe = svg.append('text').attr('font-size', 11).text(d3.format(',')(y.domain()[1]));
+      const left = Math.ceil(probe.node().getComputedTextLength()) + 10; probe.remove();
+      const x = d3.scaleBand(rows.map((r) => r.week), [left, W - 6]).padding(0.3);
+      svg.append('g').selectAll('line').data(yTicks).join('line')
+        .attr('x1', left).attr('x2', W - 6).attr('y1', (t) => y(t)).attr('y2', (t) => y(t))
+        .attr('stroke', 'var(--cds-chart-grid)').attr('stroke-width', 1);
+      svg.append('g').selectAll('text').data(yTicks).join('text')
+        .attr('x', left - 6).attr('y', (t) => y(t)).attr('dy', '0.32em').attr('text-anchor', 'end')
+        .attr('font-size', 11).attr('fill', 'var(--color-fg-muted)').text((t) => d3.format(',')(t));
+      const every = Math.max(1, Math.ceil(rows.length / Math.floor((W - left) / 52)));
+      svg.append('g').selectAll('text').data(rows.filter((_, i) => i % every === 0)).join('text')
+        .attr('x', (r) => x(r.week) + x.bandwidth() / 2).attr('y', H - 8).attr('text-anchor', 'middle')
+        .attr('font-size', 11).attr('fill', 'var(--color-fg-muted)').text((r) => fmtDate(r.week).slice(0, 5));
+      svg.append('line').attr('x1', left).attr('x2', W - 6).attr('y1', y(0)).attr('y2', y(0)).attr('stroke', 'var(--cds-chart-axis)');
+      const bw = Math.min(32, x.bandwidth());
+      svg.append('g').selectAll('rect').data(rows).join('rect')
+        .attr('x', (r) => x(r.week) + (x.bandwidth() - bw) / 2).attr('width', bw)
+        .attr('y', (r) => y(r.n)).attr('height', (r) => Math.max(0, y(0) - y(r.n)))
+        .attr('rx', 4).attr('fill', window.JT.C[0])
+        .on('mousemove', (event, r) => {
+          tip.hidden = false;
+          tip.replaceChildren();
+          const d = document.createElement('div'); d.className = 'jt-tip-d'; d.textContent = 'שבוע ' + fmtDate(r.week);
+          const v = document.createElement('div'); v.textContent = d3.format(',')(r.n) + ' הגשות';
+          tip.append(d, v);
+          const box = root.getBoundingClientRect();
+          let tx = event.clientX - box.left + 12, ty = event.clientY - box.top - 40;
+          const tw = tip.offsetWidth;
+          if (tx + tw > box.width) tx = event.clientX - box.left - tw - 12;
+          tip.style.left = Math.max(0, tx) + 'px'; tip.style.top = Math.max(0, ty) + 'px';
+          d3.select(event.currentTarget).attr('opacity', 0.75);
+        })
+        .on('mouseleave', (event) => { tip.hidden = true; d3.select(event.currentTarget).attr('opacity', 1); });
+    };
+
+    root.style.position = 'relative';
+
+    dash.onData(() => {
+      const cards = [
+        ['by-status', 'by_status', (el, rows) => drawBars(el, rows, { label: 'status', value: 'n', color: (r) => statusColor(r.status), anim: !animated })],
+        ['by-company', 'by_company', (el, rows) => drawBars(el, rows, { label: 'company', value: 'n', color: (r) => (r.open ? window.JT.C[0] : 'var(--cds-chart-muted)'), extra: (r) => (r.open ? `(${r.open} פתוחות)` : '(נסגרו)'), anim: !animated })],
+        ['by-channel', 'by_channel', (el, rows) => drawBars(el, rows, { label: 'channel', value: 'n', color: () => window.JT.C[2], extra: (r) => `(${r.answered} ענו)`, anim: !animated })],
+        ['weekly', 'weekly', drawWeekly],
+        ['by-level', 'by_level', (el, rows) => drawBars(el, rows, { label: 'group', value: 'n', color: () => window.JT.C[0], extra: (r) => `(${r.answered} ענו · ${r.answered_pct}%)`, anim: !animated })],
+        ['by-cv', 'by_cv', (el, rows) => drawBars(el, rows, { label: 'group', value: 'n', color: () => window.JT.C[3], extra: (r) => `(${r.answered} ענו · ${r.answered_pct}%)`, anim: !animated })],
+        ['by-origin', 'by_origin', (el, rows) => drawBars(el, rows, { label: 'group', value: 'n', color: () => window.JT.C[4], extra: (r) => `(${r.answered} ענו · ${r.answered_pct}%)`, anim: !animated })],
+      ];
+      let any = false;
+      cards.forEach(([elId, src, draw]) => {
+        const el = document.getElementById(elId);
+        const d = dash.data(src);
+        if (d.status === 'ok') { el.classList.remove('dash-skeleton'); draw(el, d.data || []); any = true; }
+        else if (d.status === 'error') { el.classList.remove('dash-skeleton'); failLine(el); }
+        else { el.replaceChildren(); el.classList.add('dash-skeleton'); }
+      });
+      if (any) animated = true;
+
+      const rt = dash.data('response_time');
+      root.querySelectorAll('[data-source="response_time"]').forEach((el) => {
+        if (rt.status === 'ok' && rt.data[0]) { el.classList.remove('dash-skeleton'); el.textContent = d3.format(',')(rt.data[0][el.dataset.field]); }
+        else { el.textContent = '—'; }
+      });
+
+      // weekly goal
+      const wk = dash.data('weekly'), gl = dash.data('goals');
+      const nowEl = root.querySelector('.jt-goal-now'), tgEl = root.querySelector('.jt-goal-target'), fill = root.querySelector('.jt-goal-fill'), msg = root.querySelector('.jt-goal-msg');
+      if (wk.status === 'ok' && gl.status === 'ok' && gl.data[0]) {
+        const t = new Date(); const ws = new Date(Date.UTC(t.getFullYear(), t.getMonth(), t.getDate() - t.getDay())).toISOString().slice(0, 10);
+        const row = (wk.data || []).find((r) => r.week === ws);
+        const n = row ? row.n : 0, goal = gl.data[0].weekly_goal;
+        nowEl.classList.remove('dash-skeleton');
+        nowEl.textContent = d3.format(',')(n);
+        if (row) { nowEl.setAttribute('data-source', 'weekly'); nowEl.setAttribute('data-field', 'n'); nowEl.setAttribute('data-where', 'week=' + ws); }
+        tgEl.textContent = d3.format(',')(goal);
+        tgEl.setAttribute('data-source', 'goals'); tgEl.setAttribute('data-field', 'weekly_goal'); tgEl.setAttribute('data-row', '0');
+        fill.style.width = Math.min(100, (n / Math.max(1, goal)) * 100) + '%';
+        msg.textContent = n >= goal ? 'עמדת ביעד השבוע 🎉' : `נשארו ${goal - n} הגשות כדי לעמוד ביעד`;
+      } else if (wk.status === 'error' || gl.status === 'error') { failLine(root.querySelector('.jt-goal')); }
+
+      // interview prep
+      const pr = dash.data('prep'), prepEl = document.getElementById('prep').querySelector('.jt-prep');
+      prepEl.replaceChildren();
+      if (pr.status === 'ok') {
+        prepEl.classList.remove('dash-skeleton');
+        const items = pr.data || [];
+        if (!items.length) { const e = document.createElement('div'); e.className = 'jt-empty'; e.textContent = 'אין כרגע תהליכים פעילים שדורשים הכנה'; prepEl.appendChild(e); }
+        items.forEach((p) => {
+          const box = document.createElement('article'); box.className = 'jt-prep-item'; box.id = 'prep-' + String(p.id).replace(/[^A-Za-z0-9_-]/g, '');
+          const h = document.createElement('h3'); h.textContent = p.company;
+          const role = document.createElement('div'); role.className = 'jt-prep-role'; role.textContent = p.role;
+          const st = document.createElement('div'); st.className = 'jt-prep-stage'; st.textContent = p.stage;
+          const ab = document.createElement('p'); ab.textContent = p.about;
+          const list = (title, text, open) => {
+            const d = document.createElement('details'); if (open) d.open = true;
+            const sm = document.createElement('summary'); sm.textContent = title; d.appendChild(sm);
+            const ul = document.createElement('ul');
+            String(text || '').split('|').filter(Boolean).forEach((q) => { const li = document.createElement('li'); li.textContent = q; ul.appendChild(li); });
+            d.appendChild(ul); return d;
+          };
+          box.append(h, role, st, ab, list('שאלות צפויות', p.questions, true), list('מה להכין', p.todo, false));
+          if (p.link && /^https:\/\/mail\.google\.com\//.test(p.link)) { const a = document.createElement('a'); a.href = window.JT.mailHref(p.link, p.thread_id); a.target = '_blank'; a.rel = 'noopener noreferrer'; a.textContent = 'למייל הרלוונטי ↗'; box.appendChild(a); }
+          prepEl.appendChild(box);
+        });
+      } else if (pr.status === 'error') { failLine(prepEl); } else { prepEl.classList.add('dash-skeleton'); }
+
+      const k = dash.data('kpis');
+      root.querySelectorAll('[data-source="kpis"]').forEach((el) => {
+        if (k.status === 'ok' && k.data[0]) { el.classList.remove('dash-skeleton'); el.textContent = d3.format(',')(k.data[0][el.dataset.field]); }
+        else { if (k.status !== 'error') el.classList.add('dash-skeleton'); else el.classList.remove('dash-skeleton'); el.textContent = '—'; }
+      });
+    });
+  })();
+</script>
+
+<script>
+  (() => {
+    const { STATUS_ORDER, STATUS_CLASS, fmtDate } = window.JT;
+    const table = document.querySelector('.jt-apps');
+    const tbody = table.querySelector('tbody');
+    const search = document.querySelector('.jt-app-search');
+    const chips = document.querySelector('.jt-app-chips');
+    let filter = 'הכל', sortKey = 'last_update', sortDir = -1;
+
+    const cell = (tr, text, cls) => { const td = document.createElement('td'); if (cls) td.className = cls; td.textContent = text; tr.appendChild(td); return td; };
+    const STATE_CLASS = { 'לא נקרא — כדאי להיכנס': 'jt-ms-unread', 'נקרא — מחכה לתגובה שלך': 'jt-ms-wait', 'נקרא': 'jt-ms-read', 'שלחת תגובה': 'jt-ms-replied', 'המטלה בוצעה': 'jt-ms-done', 'נשלח ממך': 'jt-ms-sent' };
+    const stateCell = (tr, state) => {
+      const td = document.createElement('td');
+      if (state) { const p = document.createElement('span'); p.className = 'jt-pill ' + (STATE_CLASS[state] || 'jt-ms-read'); p.textContent = state; td.appendChild(p); }
+      tr.appendChild(td); return td;
+    };
+    const liveState = () => {
+      const m = dash.data('mail_live');
+      const map = new Map();
+      if (m.status === 'ok') (m.data || []).forEach((r) => map.set(r.id, r));
+      return map;
+    };
+    const withLive = (rows) => { const map = liveState(); return rows.map((r) => (map.has(r.id) ? { ...r, mail_state: map.get(r.id).mail_state, action: map.get(r.id).action } : r)); };
+    const POSITIVE = ['התקדמות', 'ראיון', 'הצעה', 'פנייה', 'תגובה'];
+    const linkCell = (tr, text, href, hex) => {
+      const td = document.createElement('td');
+      if (href && /^https:\/\/mail\.google\.com\//.test(href)) {
+        const a = document.createElement('a'); a.href = window.JT.mailHref(href, hex); a.target = '_blank'; a.rel = 'noopener noreferrer'; a.className = 'jt-mail'; a.textContent = text; td.appendChild(a);
+      } else td.textContent = text;
+      tr.appendChild(td); return td;
+    };
+
+    const drawChips = (rows) => {
+      chips.replaceChildren();
+      const opts = ['הכל', ...STATUS_ORDER.filter((s) => rows.some((r) => r.status === s))];
+      opts.forEach((s) => {
+        const b = document.createElement('button'); b.type = 'button'; b.className = 'jt-chip'; b.textContent = s;
+        b.setAttribute('aria-pressed', String(s === filter));
+        b.addEventListener('click', () => { filter = s; draw(); });
+        chips.appendChild(b);
+      });
+    };
+
+    const draw = () => {
+      const d = dash.data('applications');
+      tbody.replaceChildren();
+      table.querySelectorAll('th').forEach((th) => {
+        const k = th.dataset.field;
+        th.setAttribute('aria-sort', k === sortKey ? (sortDir > 0 ? 'ascending' : 'descending') : 'none');
+      });
+      if (d.status !== 'ok') {
+        const tr = document.createElement('tr'); const td = document.createElement('td'); td.colSpan = 10;
+        if (d.status === 'error') { const f = document.createElement('div'); f.className = 'jt-fail'; f.textContent = 'הטעינה נכשלה'; td.appendChild(f); }
+        else { td.className = 'dash-skeleton'; td.textContent = ''; }
+        tr.appendChild(td); tbody.appendChild(tr); return;
+      }
+      const all = d.data || [];
+      drawChips(all);
+      const q = search.value.trim().toLowerCase();
+      const rows = all
+        .filter((r) => filter === 'הכל' || r.status === filter)
+        .filter((r) => !q || `${r.company} ${r.role} ${r.job_id} ${r.channel} ${r.note}`.toLowerCase().includes(q))
+        .sort((a, b) => {
+          if (sortKey === 'status') return sortDir * (STATUS_ORDER.indexOf(a.status) - STATUS_ORDER.indexOf(b.status));
+          return sortDir * String(a[sortKey] || '').localeCompare(String(b[sortKey] || ''), 'he');
+        });
+      if (!rows.length) {
+        const tr = document.createElement('tr'); const td = document.createElement('td'); td.colSpan = 10; td.className = 'jt-empty'; td.textContent = 'אין הגשות שמתאימות לסינון'; tr.appendChild(td); tbody.appendChild(tr); return;
+      }
+      rows.forEach((r) => {
+        const tr = document.createElement('tr'); tr.dataset.key = r.id;
+        const tdc = document.createElement('td'); tdc.className = 'jt-company';
+        if (r.link) { const a = document.createElement('a'); a.href = /^https:\/\/mail\.google\.com\//.test(r.link) ? window.JT.mailHref(r.link, r.thread_id) : r.link; a.target = '_blank'; a.rel = 'noopener noreferrer'; a.textContent = r.company; tdc.appendChild(a); } else tdc.textContent = r.company;
+        tr.appendChild(tdc);
+        cell(tr, r.role);
+        cell(tr, fmtDate(r.applied), 'jt-date');
+        const tds = document.createElement('td'); const p = document.createElement('span'); p.className = 'jt-pill ' + (STATUS_CLASS[r.status] || ''); p.textContent = r.status; tds.appendChild(p); tr.appendChild(tds);
+        cell(tr, fmtDate(r.last_update), 'jt-date');
+        cell(tr, r.channel, 'jt-hide-sm');
+        cell(tr, r.level, 'jt-hide-sm');
+        cell(tr, r.cv_version, 'jt-hide-sm');
+        cell(tr, r.next_step, 'jt-hide-sm');
+        cell(tr, r.note, 'jt-hide-sm');
+        tbody.appendChild(tr);
+      });
+    };
+
+    table.querySelectorAll('th button').forEach((b) => b.addEventListener('click', () => {
+      const k = b.dataset.sort;
+      if (sortKey === k) sortDir = -sortDir; else { sortKey = k; sortDir = (k === 'applied' || k === 'last_update') ? -1 : 1; }
+      draw();
+    }));
+    search.addEventListener('input', draw);
+    dash.onData(draw);
+
+    const fu = document.querySelector('.jt-followups');
+    const fuBody = fu.querySelector('tbody');
+    const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+    const fuMade = {};            // id -> viewUrl of a draft made in this session
+    let fuRT = null;
+    const fuRuntime = async () => fuRT || (fuRT = Promise.all(['db', 'mcp', 'assets'].map((n) => window.claude?.use?.(n).catch(() => null))).then(([db, mcp, assets]) => ({ db, mcp, assets })));
+    const isHeb = (r) => r.origin === 'ישראלית' || /[\u0590-\u05ff]/.test(r.company || '');
+    const fuDraft = (r) => {
+      const d = r.applied ? r.applied.split('-') : null;
+      const role = r.role && !/לא צוין/.test(r.role) ? r.role : '';
+      const fmt = String(r.direct_contact_note || '').split(/(?:בפורמט|format)\s*:/i)[1];
+      if (fmt && isHeb(r)) {   // the company asked for a specific structure — follow it, with blanks for what only you know
+        const items = fmt.split(/;/).map((x) => x.trim()).filter(Boolean);
+        const lines = items.map((x) => /שם מלא/.test(x) ? `${x}: {{USER_NAME}}, ${role}${r.job_id ? ', משרה ' + r.job_id : ''}` : /3 סיבות|סיבות/.test(x) ? `${x}:\n1. [ ]\n2. [ ]\n3. [ ]` : `${x}: [ ]`);
+        return { subject: `${role || 'מועמדות'}${r.job_id ? ' (' + r.job_id + ')' : ''} – {{USER_NAME}}`, body: `שלום,\n\nלפי מה שביקשתם, הפרטים שלי:\n\n${lines.join('\n\n')}\n\nתודה,\n{{USER_NAME}}` };
+      }
+      if (isHeb(r)) {
+        return { subject: `פולואפ: ${role || 'מועמדות'} – {{USER_NAME}}`, body: `שלום,\n\nהגשתי מועמדות${role ? ' למשרת ' + role : ''}${r.job_id ? ' (משרה ' + r.job_id + ')' : ''}${d ? ' ב-' + d[2] + '.' + d[1] + '.' + d[0] : ''} ורציתי לבדוק אם יש עדכון.\n[משפט אחד משלך: למה דווקא ${r.company}]\n{{FOLLOWUP_LINE_HE}}, ואשמח לשלוח פרטים נוספים או לתאם שיחה קצרה.\n\nתודה,\n{{USER_NAME}}` };
+      }
+      const M = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+      return { subject: `Follow-up: ${role || 'my application'} – {{USER_NAME_EN}}`, body: `Hi,\n\nI applied for ${role ? 'the ' + role + ' position' : 'a position at ' + r.company}${r.job_id ? ' (job ' + r.job_id + ')' : ''}${d ? ' on ' + M[+d[1] - 1] + ' ' + (+d[2]) : ''} and wanted to check whether there is any update.\n[One line of your own: why ${r.company} specifically]\n{{FOLLOWUP_LINE_EN}}, and I'd be glad to send more details or set up a short call.\n\nThanks,\n{{USER_NAME_EN}}` };
+    };
+    async function fuSaveDraftUrl(id, url) {
+      const { db, assets } = await fuRuntime();
+      if (!db || !assets) return false;
+      const snap = await db.doc('datasets/applications').get(); const doc = snap.data();
+      const res = await fetch(doc.source.url); const json = await res.json(); const rows = Array.isArray(json) ? json : (json.rows || json.data || []);
+      const row = rows.find((x) => x.id === id); if (!row) return false;
+      const t = new Date(); const today = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
+      Object.assign(row, { followup_draft: url, next_step: 'טיוטת פולואפ מוכנה ב-Gmail — לעבור ולשלוח', last_update: today });
+      const up = await assets.upload(new Blob([JSON.stringify(rows)], { type: 'application/json' }));
+      await db.doc('datasets/applications').update({ source: { kind: 'file', url: '/_blob/' + up.id, name: doc.source.name || 'applications.json' }, updated: { at: new Date().toISOString(), by: 'הדשבורד (טיוטת פולואפ באישור המשתמש)' } });
+      return true;
+    }
+    const fuAction = (td, r) => {
+      const url = r.followup_draft || fuMade[r.id];
+      if (url) { const a = document.createElement('a'); a.href = url; a.target = '_blank'; a.rel = 'noopener noreferrer'; a.className = 'jt-mail jt-draft'; a.textContent = 'טיוטה מוכנה — לפתוח ב-Gmail'; td.appendChild(a); return; }
+      if (!EMAIL_RE.test(r.direct_contact || '')) { td.textContent = r.next_step || 'ממתינים לתשובה'; td.classList.add('jt-muted'); return; }
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'jt-apply'; b.textContent = 'ליצור טיוטה';
+      const st = document.createElement('div'); st.className = 'jt-note';
+      b.addEventListener('click', async () => {
+        if (b.disabled) return; b.disabled = true; b.textContent = 'יוצר טיוטה…'; st.textContent = '';
+        try {
+          const { mcp } = await fuRuntime(); if (!mcp) throw new Error('no-mcp');
+          const m = fuDraft(r);
+          const out = await mcp.callTool('Gmail', 'create_draft', { to: [r.direct_contact], subject: m.subject, body: m.body }, { cache: false });
+          const p = out?.payload || out?.structuredContent || out || {};
+          const url = p.viewUrl || p.draft?.viewUrl || 'https://mail.google.com/mail/#drafts';
+          fuMade[r.id] = url;
+          let saved = false; try { saved = await fuSaveDraftUrl(r.id, url); } catch (e) { console.warn('save draft url', e); }
+          td.replaceChildren(); fuAction(td, r);
+          const n = document.createElement('div'); n.className = 'jt-note'; n.textContent = saved ? 'נשמרה ב-Gmail (לא נשלחה). תשלים את המשפט בסוגריים ותשלח.' : 'נשמרה ב-Gmail (לא נשלחה). תשלים את המשפט בסוגריים ותשלח.'; td.appendChild(n);
+        } catch (e) {
+          const c = e?.code; b.disabled = false; b.textContent = 'ליצור טיוטה';
+          st.textContent = (c === 'server_not_connected' || c === 'not_granted' || c === 'needs_reauth' || c === 'consent_required') ? 'צריך לאשר גישה ל-Gmail ולנסות שוב.' : 'לא הצלחתי ליצור טיוטה. אפשר לנסות שוב.';
+        }
+      });
+      td.append(b, st);
+    };
+    dash.onData(() => {
+      const d = dash.data('applications');
+      fuBody.replaceChildren();
+      if (d.status !== 'ok') {
+        const tr = document.createElement('tr'); const td = document.createElement('td'); td.colSpan = 5;
+        if (d.status === 'error') { const f = document.createElement('div'); f.className = 'jt-fail'; f.textContent = 'הטעינה נכשלה'; td.appendChild(f); } else td.className = 'dash-skeleton';
+        tr.appendChild(td); fuBody.appendChild(tr); return;
+      }
+      const t = new Date();
+      const today = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
+      const open = (r) => r.status === 'הוגש' || r.status === 'בתהליך' || r.status === 'ראיון';
+      const rows = (d.data || []).filter((r) => r.relevant !== false && open(r) && ((r.followup_after && r.followup_after <= today) || r.direct_contact))
+        .sort((a, b) => (b.followup_draft ? 2 : EMAIL_RE.test(b.direct_contact || '') ? 1 : 0) - (a.followup_draft ? 2 : EMAIL_RE.test(a.direct_contact || '') ? 1 : 0) || String(a.followup_after || '9').localeCompare(String(b.followup_after || '9')));
+      if (!rows.length) { const tr = document.createElement('tr'); const td = document.createElement('td'); td.colSpan = 5; td.className = 'jt-empty'; td.textContent = 'אין כרגע הגשות שמחכות לפולואפ או לפנייה ישירה'; tr.appendChild(td); fuBody.appendChild(tr); return; }
+      rows.forEach((r) => {
+        const tr = document.createElement('tr'); tr.dataset.key = r.id;
+        linkCell(tr, r.company, r.link, r.thread_id).className = 'jt-company';
+        cell(tr, r.role, 'jt-role');
+        cell(tr, r.followup_after ? (r.followup_after <= today ? 'עכשיו' : fmtDate(r.followup_after)) : 'עכשיו', 'jt-date');
+        const to = document.createElement('td');
+        if (EMAIL_RE.test(r.direct_contact || '')) {
+          const a = document.createElement('a'); a.href = window.JT.composeHref(r.direct_contact); a.target = '_blank'; a.rel = 'noopener noreferrer'; a.className = 'jt-mail'; a.textContent = r.direct_contact; a.dir = 'ltr'; to.appendChild(a);
+          if (r.direct_contact_note) { const n = document.createElement('div'); n.className = 'jt-note'; n.textContent = r.direct_contact_note; to.appendChild(n); }
+        } else { to.textContent = r.direct_contact || '—'; to.classList.add('jt-muted'); }
+        tr.appendChild(to);
+        const act = document.createElement('td'); tr.appendChild(act); fuAction(act, r);
+        if (r.followup_draft || EMAIL_RE.test(r.direct_contact || '')) tr.className = 'jt-needs';
+        fuBody.appendChild(tr);
+      });
+    });
+
+    const leads = document.querySelector('.jt-leads');
+    const leadsBody = leads.querySelector('tbody');
+    const leadChips = document.querySelector('.jt-lead-chips');
+    const FIT_ORDER = ['מתאים מאוד', 'מתאים', 'אולי'];
+    const FIT_CLASS = { 'מתאים מאוד': 'jt-st-offer', 'מתאים': 'jt-st-process', 'אולי': 'jt-st-submitted' };
+    let leadFilter = 'הכל';
+    const drawLeads = () => {
+      const d = dash.data('job_leads');
+      leadsBody.replaceChildren();
+      if (d.status !== 'ok') {
+        const tr = document.createElement('tr'); const td = document.createElement('td'); td.colSpan = 7;
+        if (d.status === 'error') { const f = document.createElement('div'); f.className = 'jt-fail'; f.textContent = 'הטעינה נכשלה'; td.appendChild(f); } else td.className = 'dash-skeleton';
+        tr.appendChild(td); leadsBody.appendChild(tr); return;
+      }
+      const all = d.data || [];
+      leadChips.replaceChildren();
+      ['הכל', ...FIT_ORDER.filter((f) => all.some((r) => r.fit === f))].forEach((f) => {
+        const b = document.createElement('button'); b.type = 'button'; b.className = 'jt-chip';
+        b.textContent = f === 'הכל' ? `הכל (${all.length})` : `${f} (${all.filter((r) => r.fit === f).length})`;
+        b.setAttribute('aria-pressed', String(f === leadFilter));
+        b.addEventListener('click', () => { leadFilter = f; drawLeads(); });
+        leadChips.appendChild(b);
+      });
+      const rows = all.filter((r) => leadFilter === 'הכל' || r.fit === leadFilter)
+        .sort((a, b) => (a.status === 'פתוחה' ? 0 : 1) - (b.status === 'פתוחה' ? 0 : 1) || FIT_ORDER.indexOf(a.fit) - FIT_ORDER.indexOf(b.fit) || String(b.seen).localeCompare(String(a.seen)));
+      if (!rows.length) { const tr = document.createElement('tr'); const td = document.createElement('td'); td.colSpan = 7; td.className = 'jt-empty'; td.textContent = 'אין כרגע משרות חדשות שמתאימות'; tr.appendChild(td); leadsBody.appendChild(tr); return; }
+      rows.forEach((r) => {
+        const tr = document.createElement('tr'); tr.dataset.key = r.id;
+        linkCell(tr, r.company, r.mail_link).className = 'jt-company';
+        const trl = document.createElement('td');
+        if (/^https:\/\//.test(r.link)) { const a = document.createElement('a'); a.href = r.link; a.target = '_blank'; a.rel = 'noopener noreferrer'; a.className = 'jt-mail jt-draft'; a.textContent = r.role; trl.appendChild(a); } else trl.textContent = r.role;
+        tr.appendChild(trl);
+        const tf = document.createElement('td'); const p = document.createElement('span'); p.className = 'jt-pill ' + (FIT_CLASS[r.fit] || ''); p.textContent = r.fit; tf.appendChild(p); tr.appendChild(tf);
+        const td = document.createElement('td'); td.className = 'jt-desc';
+        const a1 = document.createElement('div'); a1.className = 'jt-desc-role'; a1.textContent = r.role_desc || ''; td.appendChild(a1);
+        if (r.about) { const a2 = document.createElement('div'); a2.className = 'jt-desc-about'; a2.textContent = r.about; td.appendChild(a2); }
+        if (r.why) { const a3 = document.createElement('div'); a3.className = 'jt-desc-why'; a3.textContent = r.why; td.appendChild(a3); }
+        tr.appendChild(td);
+        cell(tr, r.location, 'jt-hide-sm');
+        cell(tr, r.status, 'jt-hide-sm ' + (r.status === 'פתוחה' ? 'jt-k-progress' : 'jt-muted'));
+        const ta = document.createElement('td'); const ab = document.createElement('button'); ab.type = 'button'; ab.className = 'jt-apply'; ab.textContent = 'הגש';
+        ab.setAttribute('aria-label', `הגשת קורות חיים ל-${r.company}, ${r.role}`);
+        ab.addEventListener('click', (ev) => { ev.preventDefault(); ev.stopPropagation(); if (window.JT.apply) window.JT.apply('l:' + r.id); }); ta.appendChild(ab); tr.prepend(ta);
+        leadsBody.appendChild(tr);
+      });
+    };
+    dash.onData(drawLeads);
+
+    const rep = document.querySelector('.jt-replies');
+    const repBody = rep.querySelector('tbody');
+    const repChips = document.querySelector('.jt-rep-chips');
+    const repSearch = document.querySelector('.jt-rep-search');
+    const STATE_ORDER = ['לא נקרא — כדאי להיכנס', 'נקרא — מחכה לתגובה שלך', 'המטלה בוצעה', 'שלחת תגובה', 'נקרא', 'נשלח ממך'];
+    let repFilter = 'לא נקרא — כדאי להיכנס', repSort = 'mail_state', repDir = 1, repTouched = false;
+    const norm = (x) => String(x || '').toLowerCase().replace(/\(.*?\)/g, '').replace(/[^a-z0-9\u0590-\u05ff]+/g, ' ').trim();
+    const channelOf = () => {
+      const a = dash.data('applications');
+      const byBoth = new Map(), byCo = new Map();
+      if (a.status === 'ok') (a.data || []).forEach((r) => {
+        byBoth.set(norm(r.company) + '|' + norm(r.role), r.channel);
+        const k = norm(r.company); const prev = byCo.get(k);
+        byCo.set(k, prev === undefined ? r.channel : (prev === r.channel ? prev : 'כמה ערוצים'));
+      });
+      const list = a.status === 'ok' ? (a.data || []) : [];
+      return (e) => {
+        const c = norm(e.company), r = norm(e.role);
+        const exact = byBoth.get(c + '|' + r); if (exact) return exact;
+        const part = r && list.find((x) => norm(x.company) === c && (norm(x.role).includes(r) || r.includes(norm(x.role))));
+        return (part && part.channel) || byCo.get(c) || '';
+      };
+    };
+    // ארכיון: שרשור שבו כתבו שהמשרה לא מתאימה / לא ממשיכים / "נעדכן כשתהיה משרה מתאימה", ורק אחרי שענית בו.
+    const NOT_FIT = /לא\s*מתאימ|לא\s*רלוונטי|לא\s*נמצא(?:ת|ה)?\s*מתאים|מישהו\s*אחר|מועמד(?:ים)?\s*אחר|לא\s*להמשיך|לא\s*ממשיכים|לא\s*נמשיך|לא\s*להתקדם|לא\s*מתקדמ|ג['׳]וניור\s*מדי|מדי\s*למשרה|נעדכן\s*אות|נשמח\s*לעדכן|כשי(?:י)?מצאו|כשתהיה\s*משרה|משרות\s*מתאימות|מאגר\s*המועמדים|not\s+(?:a\s+)?(?:good\s+)?fit|other\s+candidates|not\s+moving\s+forward|future\s+(?:opportunit|opening|role)/i;
+    const isNotFit = (e) => e.kind === 'דחייה' || NOT_FIT.test(String(e.text || ''));
+    const laterId = (a, b) => (a.length === b.length ? a > b : a.length > b.length);
+    const after = (m, n) => (String(m.date) > String(n.date)) || (String(m.date) === String(n.date) && m.msg_id && n.msg_id && laterId(String(m.msg_id), String(n.msg_id)));
+    const archiveSplit = (rows) => {
+      const groups = new Map();
+      rows.forEach((r) => { const k = r.thread_id || ('co:' + norm(r.company) + '|' + norm(r.role)); if (!groups.has(k)) groups.set(k, []); groups.get(k).push(r); });
+      const out = new Set(), threads = new Set();
+      groups.forEach((g, k) => {
+        const mine = (r) => r.mail_state === 'נשלח ממך';
+        const neg = g.filter((r) => !mine(r) && isNotFit(r));
+        const hit = neg.some((n) => {
+          const answered = n.mail_state === 'שלחת תגובה' || g.some((m) => mine(m) && after(m, n));
+          const reopened = g.some((m) => !mine(m) && !isNotFit(m) && m.kind !== 'הגשה' && after(m, n)); // אם אחרי זה הגיעה התקדמות — לא בארכיון
+          return answered && !reopened;
+        });
+        if (hit) { g.forEach((r) => out.add(r.id)); if (!k.startsWith('co:')) threads.add(k); }
+      });
+      return { ids: out, threads };
+    };
+    const arch = document.querySelector('.jt-arch'), archBody = arch.querySelector('tbody'), archCount = document.querySelector('.jt-arch-count');
+    const drawArchive = (rows) => {
+      archBody.replaceChildren();
+      const n = new Set(rows.map((r) => r.thread_id || r.company)).size;
+      archCount.textContent = n ? (n === 1 ? '(שיחה אחת)' : '(' + n + ' שיחות)') : '';
+      if (!rows.length) { const tr = document.createElement('tr'); const td = document.createElement('td'); td.colSpan = 6; td.className = 'jt-empty'; td.textContent = 'עוד אין שיחות בארכיון'; tr.appendChild(td); archBody.appendChild(tr); return; }
+      rows.slice().sort((a, b) => String(b.date).localeCompare(String(a.date))).forEach((r) => {
+        const tr = document.createElement('tr'); tr.dataset.key = r.id;
+        cell(tr, fmtDate(r.date), 'jt-date');
+        cell(tr, r.company, 'jt-company');
+        cell(tr, r.role, 'jt-hide-sm jt-role');
+        cell(tr, r.kind, r.kind === 'דחייה' ? 'jt-k-reject' : '');
+        linkCell(tr, r.text, r.link, r.thread_id);
+        stateCell(tr, r.mail_state);
+        archBody.appendChild(tr);
+      });
+    };
+    window.JT.archivedThreads = new Set();
+    const drawReplies = () => {
+      const d = dash.data('events');
+      repBody.replaceChildren();
+      rep.querySelectorAll('th').forEach((th) => th.setAttribute('aria-sort', th.dataset.field === repSort ? (repDir > 0 ? 'ascending' : 'descending') : 'none'));
+      if (d.status !== 'ok') {
+        const tr = document.createElement('tr'); const td = document.createElement('td'); td.colSpan = 7;
+        if (d.status === 'error') { const f = document.createElement('div'); f.className = 'jt-fail'; f.textContent = 'הטעינה נכשלה'; td.appendChild(f); } else td.className = 'dash-skeleton';
+        tr.appendChild(td); repBody.appendChild(tr); return;
+      }
+      const chOf = channelOf();
+      const everything = withLive(d.data || []).map((r) => ({ ...r, channel: chOf(r) }));
+      const split = archiveSplit(everything);
+      window.JT.archivedThreads = split.threads;
+      drawArchive(everything.filter((r) => split.ids.has(r.id)));
+      const all = everything.filter((r) => !split.ids.has(r.id));
+      const counts = new Map();
+      all.forEach((r) => counts.set(r.mail_state, (counts.get(r.mail_state) || 0) + 1));
+      if (!repTouched && !counts.get(repFilter)) repFilter = 'הכל';
+      repChips.replaceChildren();
+      ['הכל', ...STATE_ORDER.filter((s) => counts.get(s))].forEach((s) => {
+        const b = document.createElement('button'); b.type = 'button'; b.className = 'jt-chip';
+        b.textContent = s === 'הכל' ? `הכל (${all.length})` : `${s} (${counts.get(s)})`;
+        b.setAttribute('aria-pressed', String(s === repFilter));
+        b.addEventListener('click', () => { repFilter = s; repTouched = true; drawReplies(); });
+        repChips.appendChild(b);
+      });
+      const q = repSearch.value.trim().toLowerCase();
+      const rank = (s) => { const i = STATE_ORDER.indexOf(s); return i < 0 ? 99 : i; };
+      const rows = all
+        .filter((r) => repFilter === 'הכל' || r.mail_state === repFilter)
+        .filter((r) => !q || `${r.company} ${r.role} ${r.text} ${r.kind} ${r.channel}`.toLowerCase().includes(q))
+        .sort((a, b) => {
+          if (repSort === 'mail_state') return repDir * (rank(a.mail_state) - rank(b.mail_state)) || String(b.date).localeCompare(String(a.date));
+          if (repSort === 'date') return repDir * String(a.date).localeCompare(String(b.date));
+          return repDir * String(a[repSort] || '').localeCompare(String(b[repSort] || ''), 'he') || String(b.date).localeCompare(String(a.date));
+        });
+      if (!rows.length) {
+        const tr = document.createElement('tr'); const td = document.createElement('td'); td.colSpan = 7; td.className = 'jt-empty'; td.textContent = 'אין מיילים במצב הזה'; tr.appendChild(td); repBody.appendChild(tr); return;
+      }
+      rows.forEach((r) => {
+        const tr = document.createElement('tr'); tr.dataset.key = r.id;
+        if (r.action === true || r.mail_state === 'נקרא — מחכה לתגובה שלך') tr.className = 'jt-needs';
+        cell(tr, fmtDate(r.date), 'jt-date');
+        cell(tr, r.company, 'jt-company');
+        cell(tr, r.role, 'jt-hide-sm jt-role');
+        cell(tr, r.kind, r.kind === 'דחייה' ? 'jt-k-reject' : POSITIVE.includes(r.kind) ? 'jt-k-progress' : '');
+        linkCell(tr, r.text, r.link, r.thread_id);
+        stateCell(tr, r.mail_state);
+        cell(tr, r.channel, 'jt-channel');
+        repBody.appendChild(tr);
+      });
+    };
+    rep.querySelectorAll('th button').forEach((b) => b.addEventListener('click', () => {
+      const k = b.dataset.sort;
+      if (repSort === k) repDir = -repDir; else { repSort = k; repDir = k === 'date' ? -1 : 1; }
+      drawReplies();
+    }));
+    repSearch.addEventListener('input', drawReplies);
+    document.querySelector('.jt-refresh').addEventListener('click', () => { dash.refresh('gmail_unread'); dash.refresh('gmail_sent'); });
+    const liveText = document.querySelector('.jt-live-text'), liveDot = document.querySelector('.jt-live-dot');
+    dash.onData(() => {
+      const u = dash.data('gmail_unread'), sn = dash.data('gmail_sent');
+      if (u.status === 'ok' && sn.status === 'ok') { liveDot.dataset.on = (u.refreshing || sn.refreshing) ? 'busy' : 'ok'; liveText.textContent = (u.refreshing || sn.refreshing) ? 'בודק מול Gmail…' : 'מעודכן מול Gmail'; }
+      else if (u.status === 'loading' || sn.status === 'loading') { liveDot.dataset.on = 'busy'; liveText.textContent = 'בודק מול Gmail…'; }
+      else if (u.status === 'connect' || sn.status === 'connect') { liveDot.dataset.on = 'off'; liveText.textContent = 'צריך לחבר את Gmail כדי לראות מצב חי'; }
+      else { liveDot.dataset.on = 'off'; liveText.textContent = 'לא הצלחתי לבדוק מול Gmail — מוצג המצב מהסריקה האחרונה'; }
+    });
+    dash.onData(drawReplies);
+  })();
+</script>
+<script>
+  (() => {
+    const SKILL = 'finding-job-clear';
+    const sel = document.getElementById('cv-target'), lang = document.getElementById('cv-lang'), ask = document.getElementById('cv-ask');
+    const go = document.getElementById('cv-go'), out = document.getElementById('cv-out'), st = document.getElementById('cv-status');
+    let targets = [];
+    const fill = () => {
+      const L = dash.data('job_leads'), A = dash.data('applications');
+      const leads = L.status === 'ok' ? (L.data || []).filter((r) => !/לא אומתה/.test(r.status || '')) : [];
+      const apps = A.status === 'ok' ? (A.data || []).filter((r) => r.status !== 'נדחה') : [];
+      const prev = sel.value;
+      targets = [
+        ...apps.map((r) => ({ key: 'a:' + r.id, group: 'הגשות פתוחות', company: r.company, role: r.role, job_id: r.job_id || '', link: r.link || '', desc: r.next_step || '', origin: r.origin || '' })),
+        ...leads.map((r) => ({ key: 'l:' + r.id, group: 'משרות שכדאי להגיש', company: r.company, role: r.role, job_id: '', link: r.link || '', desc: r.role_desc || r.about || '', origin: r.origin || '' })),
+      ];
+      sel.replaceChildren(new Option('בלי משרה מסוימת — שיפור כללי', ''));
+      ['משרות שכדאי להגיש', 'הגשות פתוחות'].forEach((g) => {
+        const items = targets.filter((t) => t.group === g); if (!items.length) return;
+        const og = document.createElement('optgroup'); og.label = g;
+        items.forEach((t) => og.appendChild(new Option(`${t.company} — ${t.role}`, t.key)));
+        sel.appendChild(og);
+      });
+      if ([...sel.options].some((o) => o.value === prev)) sel.value = prev;
+    };
+    dash.onData(fill);
+    const build = () => {
+      const t = targets.find((x) => x.key === sel.value);
+      const lines = [`שדרוג קורות חיים (סקיל ${SKILL}) — בקשה מפורשת שלי.`];
+      if (t) {
+        lines.push(`משרת יעד: ${t.company} – ${t.role}${t.job_id ? ` (מס' ${t.job_id})` : ''}`);
+        if (t.link) lines.push(`קישור: ${t.link}`);
+        if (t.desc) lines.push(`על התפקיד: ${t.desc}`);
+        if (t.origin) lines.push(`סוג חברה: ${t.origin}`);
+      } else lines.push('משרת יעד: אין — שיפור כללי לתפקידים שאני מחפש');
+      lines.push(`מה אני רוצה: ${ask.value.trim() || 'התאמה למשרה וניסוח חד יותר'}`);
+      lines.push(`שפה: ${lang.value}`);
+      lines.push('קורות החיים שלי מצורפים. אל תמציא שום עובדה, כתוב בשפה אנושית וטבעית, ותראה לי מה שינית לפני הקובץ הסופי.');
+      return lines.join('\n');
+    };
+    const head = (t) => {
+      if (!t) return ['משרה: לא נבחרה — תשאל אותי לאיזו משרה'];
+      const l = [`משרה: ${t.company} – ${t.role}${t.job_id ? ` (מס' ${t.job_id})` : ''}`];
+      if (t.link) l.push(`קישור: ${t.link}`);
+      if (t.desc) l.push(`על התפקיד: ${t.desc}`);
+      if (t.origin) l.push(`סוג חברה: ${t.origin}`);
+      return l;
+    };
+    const buildApply = () => {
+      const t = targets.find((x) => x.key === sel.value);
+      const lines = [`הגשת קורות חיים (סקיל ${SKILL}) — בקשה מפורשת שלי.`, ...head(t)];
+      if (ask.value.trim()) lines.push(`הערות שלי: ${ask.value.trim()}`);
+      lines.push(`שפה: ${lang.value}`);
+      lines.push('תבדוק שלא הגשתי כבר, תמצא איך מגישים (מייל או טופס), תכין הכול עם קורות החיים המתאימים ותראה לי לפני. לא לשלוח ולא להגיש בלי אישור שלי.');
+      return lines.join('\n');
+    };
+    const deliver = async (text, okMsg) => {
+      out.hidden = false; out.value = text;
+      let ok = false;
+      try { if (navigator.clipboard && window.isSecureContext) { await navigator.clipboard.writeText(text); ok = true; } } catch (e) { ok = false; }
+      if (!ok) { try { out.focus({ preventScroll: true }); out.select(); ok = document.execCommand('copy'); } catch (e) { ok = false; } }
+      st.textContent = ok ? okMsg : 'סמן והעתק את הבקשה מהתיבה, ואז הדבק בצ\'אט עם Claude';
+      if (!ok) { out.focus({ preventScroll: true }); out.select(); }
+    };
+    document.getElementById('cv-apply').addEventListener('click', () => deliver(buildApply(), 'בקשת ההגשה הועתקה. הדבק אותה בצ\'אט עם Claude'));
+    const copyText = async (text, btn, area) => {
+      let ok = false;
+      try { if (navigator.clipboard && window.isSecureContext) { await navigator.clipboard.writeText(text); ok = true; } } catch (e) { ok = false; }
+      if (!ok && area) {
+        try { area.focus({ preventScroll: true }); area.select(); area.setSelectionRange(0, area.value.length); ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      }
+      btn.textContent = ok ? 'הועתק ✓' : 'סמן והעתק מהתיבה';
+      if (!ok && area) { area.focus({ preventScroll: true }); area.select(); }
+      return ok;
+    };
+    const sheet = document.createElement('div'); sheet.className = 'jt-sheet'; sheet.hidden = true;
+    sheet.setAttribute('role', 'dialog'); sheet.setAttribute('aria-label', 'בקשת הגשה');
+    const sTitle = document.createElement('h3'); sTitle.className = 'jt-h';
+    const sHint = document.createElement('p'); sHint.className = 'jt-note';
+    sHint.textContent = 'הבקשה מוכנה. מעתיקים אותה ומדביקים בצ\'אט עם Claude, ושם מכינים את המייל או הטופס. שום דבר לא נשלח בלי אישור שלך.';
+    const sText = document.createElement('textarea'); sText.className = 'jt-input'; sText.rows = 6; sText.readOnly = true; sText.setAttribute('aria-label', 'בקשת ההגשה');
+    const sActions = document.createElement('div'); sActions.className = 'jt-cv-actions';
+    const sCopy = document.createElement('button'); sCopy.type = 'button'; sCopy.className = 'jt-primary'; sCopy.textContent = 'העתקת הבקשה';
+    const sClose = document.createElement('button'); sClose.type = 'button'; sClose.className = 'jt-secondary'; sClose.textContent = 'סגירה';
+    sActions.append(sCopy, sClose); sheet.append(sTitle, sHint, sText, sActions);
+    document.querySelector('.jt').appendChild(sheet);
+    const closeSheet = () => { sheet.hidden = true; };
+    sCopy.addEventListener('click', () => copyText(sText.value, sCopy, sText));
+    sClose.addEventListener('click', closeSheet);
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !sheet.hidden) closeSheet(); });
+    window.JT.apply = (key) => {
+      if ([...sel.options].some((o) => o.value === key)) sel.value = key;
+      const t = targets.find((x) => x.key === sel.value);
+      sTitle.textContent = t ? `הגשה ל-${t.company}` : 'הגשת קורות חיים';
+      sText.value = buildApply(); sCopy.textContent = 'העתקת הבקשה';
+      sheet.hidden = false; sCopy.focus({ preventScroll: true });
+    };
+    go.addEventListener('click', () => deliver(build(), 'הבקשה הועתקה. הדבק אותה בצ\'אט עם Claude וצרף את קובץ קורות החיים'));
+  })();
+</script>

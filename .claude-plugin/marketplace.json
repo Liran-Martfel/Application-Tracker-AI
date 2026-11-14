@@ -1,0 +1,13 @@
+{
+  "name": "application-tracker-ai",
+  "owner": {
+    "name": "Liran Martfel"
+  },
+  "plugins": [
+    {
+      "name": "application-tracker-ai",
+      "source": "./",
+      "description": "Job-application tracker (finding-job-clear) + human-writing skill."
+    }
+  ]
+}

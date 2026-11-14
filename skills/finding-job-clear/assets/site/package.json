@@ -1,0 +1,14 @@
+{
+  "name": "{{WORKER_NAME}}-site",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build-knowledge.mjs",
+    "dev": "npm run build && wrangler dev",
+    "deploy": "npm run build && wrangler deploy"
+  },
+  "devDependencies": {
+    "playwright": "^1.64.1",
+    "wrangler": "^4.40.0"
+  }
+}

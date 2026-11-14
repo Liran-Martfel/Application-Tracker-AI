@@ -1,0 +1,52 @@
+name = "{{WORKER_NAME}}"
+main = "src/index.js"
+compatibility_date = "2026-10-01"
+
+[assets]
+directory = "./public"
+binding = "ASSETS"
+run_worker_first = ["/app*", "/api/*", "/login*", "/js/app-*"]
+
+# Wake free Render demos (DEMOS in src/index.js; delete this block if there are none) every 10 minutes, Sun–Thu, 05:00–17:59 UTC
+# = about 07:00–20:00 in Israel (winter) / 08:00–21:00 (summer). See wakeDemos() in src/index.js.
+[triggers]
+crons = ["*/10 5-17 * * SUN-THU", "*/5 * * * *"]   # the demos; Nika's reminders (src/nika.js)
+
+# Raise this number and deploy to clear every login block at once (5 wrong passwords block an address for 24h)
+[vars]
+LOGIN_LOCK_VERSION = "1"
+
+# Backup model for the public chat when Gemini is out of quota (Workers AI, free 10,000 neurons a day)
+[ai]
+binding = "AI"
+
+# Per-IP rate limits (login 5 / chat 20 per 10 minutes) live in this Durable Object
+[[durable_objects.bindings]]
+name = "LIMITER"
+class_name = "Limiter"
+
+# Anonymous visitor stats for the private area (one instance, SQLite)
+[[durable_objects.bindings]]
+name = "STATS"
+class_name = "Stats"
+
+# Nika on Telegram: chat history, proposed actions waiting for a button, reminders (src/nika.js)
+[[durable_objects.bindings]]
+name = "BOT"
+class_name = "Bot"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Limiter"]
+
+[[migrations]]
+tag = "v2"
+new_sqlite_classes = ["Stats"]
+
+[[migrations]]
+tag = "v3"
+new_sqlite_classes = ["Bot"]
+
+# Secrets (set once with `npx wrangler secret put NAME`):
+#   GEMINI_API_KEY, APPS_SCRIPT_URL, APPS_SCRIPT_TOKEN, FEED_TOKEN, ADMIN_PASSWORD, SESSION_SECRET
+#   Nika: TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID (the webhook secret is derived from SESSION_SECRET)
